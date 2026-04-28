@@ -93,76 +93,76 @@ pub fn generate_pdf(estimate_id: i64, save_path: String, page_size: String) -> R
     current_layer.restore_graphics_state();
 
     // ── HEADER BAR ───────────────────────────────────────────────────────────
-    fill_rect(&current_layer, 0.0, page_h - 28.0, page_w, 28.0, 0.13_f32, 0.18_f32, 0.35_f32);
+    fill_rect(&current_layer, 0.0, page_h - 20.0, page_w, 20.0, 0.13_f32, 0.18_f32, 0.35_f32);
 
     current_layer.set_fill_color(Color::Rgb(Rgb::new(1.0, 1.0, 1.0, None)));
-    write_text(&current_layer, &shop_name.to_uppercase(), 12.0, page_h - 11.0, 18.0, true);
-    write_text(&current_layer, "QUOTATION / ESTIMATE", page_w - 80.0, page_h - 11.0, 13.0, true);
+    write_text(&current_layer, &shop_name.to_uppercase(), 12.0, page_h - 10.0, 16.0, true);
+    write_text(&current_layer, "QUOTATION / ESTIMATE", page_w - 70.0, page_h - 10.0, 11.0, true);
 
     // Thin accent strip below header
-    fill_rect(&current_layer, 0.0, page_h - 30.0, page_w, 2.0, 0.95_f32, 0.70_f32, 0.20_f32);
+    fill_rect(&current_layer, 0.0, page_h - 22.0, page_w, 2.0, 0.95_f32, 0.70_f32, 0.20_f32);
 
     // ── SHOP INFO & ESTIMATE META ─────────────────────────────────────────────
     current_layer.set_fill_color(Color::Rgb(Rgb::new(0.0, 0.0, 0.0, None)));
-    let info_y = page_h - 40.0;
+    let info_y = page_h - 30.0;
     if !shop_address.is_empty() {
-        write_text(&current_layer, &shop_address, 12.0, info_y, 9.0, false);
+        write_text(&current_layer, &shop_address, 12.0, info_y, 8.0, false);
     }
     if !shop_phone.is_empty() {
-        write_text(&current_layer, &format!("Phone: {}", shop_phone), 12.0, info_y - 5.0, 9.0, false);
+        write_text(&current_layer, &format!("Phone: {}", shop_phone), 12.0, info_y - 4.5, 8.0, false);
     }
-    write_text(&current_layer, &format!("EST No: {}", estimate.est_number), page_w - 80.0, info_y, 10.0, true);
-    write_text(&current_layer, &format!("Date: {}", Local::now().format("%d-%m-%Y")), page_w - 80.0, info_y - 5.5, 9.0, false);
+    write_text(&current_layer, &format!("EST No: {}", estimate.est_number), page_w - 70.0, info_y, 9.0, true);
+    write_text(&current_layer, &format!("Date: {}", Local::now().format("%d-%m-%Y")), page_w - 70.0, info_y - 4.5, 8.0, false);
 
     // ── BILLED TO ─────────────────────────────────────────────────────────────
     let mut cursor_y = info_y - 16.0;
 
     if let Some(ref cust) = estimate.customer {
         if !cust.is_empty() {
-            write_text(&current_layer, "BILLED TO:", 12.0, cursor_y, 8.0, true);
-            cursor_y -= 5.5;
-            write_text(&current_layer, cust, 12.0, cursor_y, 12.0, false);
-            cursor_y -= 8.0;
+            write_text(&current_layer, "BILLED TO:", 12.0, cursor_y, 7.5, true);
+            cursor_y -= 5.0;
+            write_text(&current_layer, cust, 12.0, cursor_y, 11.0, false);
+            cursor_y -= 7.0;
         }
     }
 
     // ── WARNING BANNER ────────────────────────────────────────────────────────
-    cursor_y -= 2.0;
-    fill_rect(&current_layer, 12.0, cursor_y - 2.0, page_w - 24.0, 7.0, 1.0_f32, 0.95_f32, 0.85_f32);
+    cursor_y -= 1.0;
+    fill_rect(&current_layer, 12.0, cursor_y - 1.5, page_w - 24.0, 6.0, 1.0_f32, 0.95_f32, 0.85_f32);
     current_layer.set_fill_color(Color::Rgb(Rgb::new(0.55_f32, 0.30_f32, 0.0_f32, None)));
-    write_text(&current_layer, "  ESTIMATE ONLY — NOT A TAX INVOICE", 12.0, cursor_y, 9.0, true);
+    write_text(&current_layer, "  ESTIMATE ONLY — NOT A TAX INVOICE", 12.0, cursor_y, 8.0, true);
     current_layer.set_fill_color(Color::Rgb(Rgb::new(0.0, 0.0, 0.0, None)));
-    cursor_y -= 12.0;
+    cursor_y -= 10.0;
 
     // ── TABLE HEADER ─────────────────────────────────────────────────────────
-    fill_rect(&current_layer, 12.0, cursor_y - 2.0, page_w - 24.0, 7.0, 0.22_f32, 0.28_f32, 0.50_f32);
+    fill_rect(&current_layer, 12.0, cursor_y - 1.5, page_w - 24.0, 6.0, 0.22_f32, 0.28_f32, 0.50_f32);
     current_layer.set_fill_color(Color::Rgb(Rgb::new(1.0, 1.0, 1.0, None)));
-    write_text(&current_layer, "#", 14.0, cursor_y, 8.5, true);
-    write_text(&current_layer, "DESCRIPTION", 22.0, cursor_y, 8.5, true);
-    write_text(&current_layer, "UNIT PRICE", page_w - 90.0, cursor_y, 8.5, true);
-    write_text(&current_layer, "QTY", page_w - 55.0, cursor_y, 8.5, true);
-    write_text(&current_layer, "TOTAL", page_w - 35.0, cursor_y, 8.5, true);
+    write_text(&current_layer, "#", 14.0, cursor_y, 8.0, true);
+    write_text(&current_layer, "DESCRIPTION", 22.0, cursor_y, 8.0, true);
+    write_text(&current_layer, "UNIT PRICE", page_w - 90.0, cursor_y, 8.0, true);
+    write_text(&current_layer, "QTY", page_w - 55.0, cursor_y, 8.0, true);
+    write_text(&current_layer, "TOTAL", page_w - 35.0, cursor_y, 8.0, true);
     current_layer.set_fill_color(Color::Rgb(Rgb::new(0.0, 0.0, 0.0, None)));
-    cursor_y -= 9.0;
+    cursor_y -= 7.5;
 
     // ── TABLE ROWS ────────────────────────────────────────────────────────────
     for (i, item) in estimate.items.iter().enumerate() {
-        if cursor_y < 50.0 { break; }
+        if cursor_y < 25.0 { break; }
 
         // Alternating row background
         if i % 2 == 1 {
-            fill_rect(&current_layer, 12.0, cursor_y - 2.5, page_w - 24.0, 7.0, 0.97_f32, 0.97_f32, 0.97_f32);
+            fill_rect(&current_layer, 12.0, cursor_y - 2.0, page_w - 24.0, 6.0, 0.97_f32, 0.97_f32, 0.97_f32);
         }
 
-        write_text(&current_layer, &format!("{}", i + 1), 14.0, cursor_y, 9.0, false);
+        write_text(&current_layer, &format!("{}", i + 1), 14.0, cursor_y, 8.5, false);
         let name_limit = if page_w < 160.0 { 35 } else { 52 };
         let name = if item.name.len() > name_limit { format!("{}...", &item.name[..name_limit-1]) } else { item.name.clone() };
-        write_text(&current_layer, &name, 22.0, cursor_y, 9.0, false);
-        write_text(&current_layer, &format!("Rs. {:.2}", item.unit_price), page_w - 90.0, cursor_y, 9.0, false);
-        write_text(&current_layer, &format!("{:.0}", item.quantity), page_w - 55.0, cursor_y, 9.0, false);
-        write_text(&current_layer, &format!("Rs. {:.2}", item.line_total), page_w - 35.0, cursor_y, 9.0, false);
+        write_text(&current_layer, &name, 22.0, cursor_y, 8.5, false);
+        write_text(&current_layer, &format!("Rs. {:.2}", item.unit_price), page_w - 90.0, cursor_y, 8.5, false);
+        write_text(&current_layer, &format!("{:.0}", item.quantity), page_w - 55.0, cursor_y, 8.5, false);
+        write_text(&current_layer, &format!("Rs. {:.2}", item.line_total), page_w - 35.0, cursor_y, 8.5, false);
 
-        cursor_y -= 7.5;
+        cursor_y -= 6.0;
     }
 
 
