@@ -28,7 +28,13 @@ pub fn resolve_db_path(app: &tauri::AppHandle) -> std::path::PathBuf {
             if let Ok(content) = std::fs::read_to_string(&config_path) {
                 // The JSON should be a simple string
                 if let Ok(path_str) = serde_json::from_str::<String>(&content) {
-                    let path = std::path::PathBuf::from(path_str);
+                    let mut path = std::path::PathBuf::from(&path_str);
+                    
+                    // If path is relative, resolve it relative to the executable directory
+                    if path.is_relative() {
+                        path = dir.join(path);
+                    }
+                    
                     // Ensure the parent directory exists
                     if path.parent().map(|p| p.exists()).unwrap_or(false) {
                         return path;
@@ -38,10 +44,16 @@ pub fn resolve_db_path(app: &tauri::AppHandle) -> std::path::PathBuf {
         }
     }
 
-    // 2. Default: Portable mode (db next to exe) if writable
+    // 2. Default: Portable mode (db next to exe)
     if let Some(dir) = exe_dir {
         let db_path = dir.join("estima.db");
-        // Test if writable by creating a dummy file
+        
+        // Priority A: If the file already exists here, always use it (True Portable)
+        if db_path.exists() {
+            return db_path;
+        }
+
+        // Priority B: Try to use the exe dir if it is writable
         let test_file = dir.join(".test_write");
         if std::fs::write(&test_file, "").is_ok() {
             let _ = std::fs::remove_file(test_file);

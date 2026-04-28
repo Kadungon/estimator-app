@@ -47,7 +47,14 @@ pub fn set_db_path(app_handle: tauri::AppHandle, path: String) -> Result<(), Str
     let exe_dir = app_handle.path().executable_dir().map_err(|e| e.to_string())?;
     let config_path = exe_dir.join("db_path.json");
     
-    let path_json = serde_json::to_string(&path).map_err(|e| e.to_string())?;
+    let mut save_path = std::path::PathBuf::from(&path);
+    
+    // If the path is inside the exe_dir, store it as a relative path to maintain portability
+    if let Ok(rel) = save_path.strip_prefix(&exe_dir) {
+        save_path = rel.to_path_buf();
+    }
+    
+    let path_json = serde_json::to_string(&save_path).map_err(|e| e.to_string())?;
     fs::write(config_path, path_json).map_err(|e| e.to_string())?;
     
     Ok(())

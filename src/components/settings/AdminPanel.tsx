@@ -265,8 +265,12 @@ export default function AdminPanel() {
             </div>
             <button className="btn btn-ghost" onClick={handleSetPath}>Change</button>
           </div>
-          <p style={{ fontSize: 10, color: "var(--accent)", marginTop: 6, fontWeight: 600 }}>
-            TIP: Move the .db file manually before restarting if you want to keep existing data.
+          <p style={{ fontSize: 10, color: "var(--primary)", marginTop: 6, fontWeight: 600 }}>
+            TIP: For Pendrive/Portable use, keep the database in the app folder. 
+            The app supports relative paths and will stay connected even if the drive letter changes.
+          </p>
+          <p style={{ fontSize: 10, color: "var(--accent)", marginTop: 2, fontWeight: 600 }}>
+            Note: You must manually move the .db file to the new location before restarting the app.
           </p>
         </div>
 
