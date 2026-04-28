@@ -44,9 +44,6 @@ export default function CartTable({ onSelectPriceLabel }: Props) {
                 <div style={{ fontWeight: 600, fontSize: 13.5 }}>{item.name}</div>
                 <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 2 }}>
                   <span className="badge badge-primary" style={{ fontSize: 10 }}>{item.unit || "Pcs"}</span>
-                  {!item.persisted && (
-                    <span className="badge badge-accent" style={{ fontSize: 10 }}>On-the-fly</span>
-                  )}
                 </div>
               </td>
               <td>

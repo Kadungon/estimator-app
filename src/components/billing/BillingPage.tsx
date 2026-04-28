@@ -239,9 +239,9 @@ export default function BillingPage() {
           </div>
 
           {/* Printable Totals (Visible only in print) */}
-          <div className="print-only" style={{ marginTop: 20, padding: "0 12px" }}>
+          <div className="print-only" style={{ marginTop: 10, padding: "0 12px" }}>
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <div style={{ width: 240, borderTop: "2px solid #000", paddingTop: 10 }}>
+              <div style={{ width: 220, borderTop: "1px solid #000", paddingTop: 6 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                   <span style={{ fontWeight: 600 }}>Subtotal:</span>
                   <span>Rs.{cart.subtotal().toFixed(2)}</span>
