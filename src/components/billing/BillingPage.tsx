@@ -183,7 +183,7 @@ export default function BillingPage() {
 
   return (
     <>
-      <div className="printable-content" style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
+      <div className={`printable-content ${settings?.pdf_layout === 'A5' ? 'print-a5' : 'print-a4'}`} style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
       {/* Top bar */}
       <div className="page-header no-print" style={{ alignItems: "center" }}>
         <span className="page-title">New Estimate</span>

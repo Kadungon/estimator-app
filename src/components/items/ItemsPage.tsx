@@ -172,6 +172,7 @@ export default function ItemsPage() {
           item={showModal.item} 
           categories={categories}
           onSave={() => { setShowModal({ open: false }); loadData(); }}
+          onCategoryAdded={() => loadData()}
           onClose={() => setShowModal({ open: false })}
         />
       )}

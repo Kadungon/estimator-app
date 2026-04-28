@@ -939,7 +939,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "estimation-app"
+name = "estima"
 version = "0.1.0"
 dependencies = [
  "chrono",

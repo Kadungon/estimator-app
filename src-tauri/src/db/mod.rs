@@ -40,7 +40,7 @@ pub fn resolve_db_path(app: &tauri::AppHandle) -> std::path::PathBuf {
 
     // 2. Default: Portable mode (db next to exe) if writable
     if let Some(dir) = exe_dir {
-        let db_path = dir.join("quickestimate.db");
+        let db_path = dir.join("estima.db");
         // Test if writable by creating a dummy file
         let test_file = dir.join(".test_write");
         if std::fs::write(&test_file, "").is_ok() {
@@ -52,7 +52,7 @@ pub fn resolve_db_path(app: &tauri::AppHandle) -> std::path::PathBuf {
     // 3. Fallback to standard app data dir (System Install mode)
     let app_data_dir = app.path().app_data_dir().expect("failed to get app data dir");
     let _ = std::fs::create_dir_all(&app_data_dir);
-    app_data_dir.join("quickestimate.db")
+    app_data_dir.join("estima.db")
 }
 
 pub fn get_db_path(app: &tauri::AppHandle) -> Result<std::path::PathBuf, String> {
@@ -67,7 +67,7 @@ fn run_migrations(conn: &Connection) -> Result<()> {
         );
 
         INSERT OR IGNORE INTO settings (key, value) VALUES
-            ('shop_name',       'QuickEstimate'),
+            ('shop_name',       'Estima'),
             ('shop_address',    ''),
             ('shop_phone',      ''),
             ('shop_email',      ''),

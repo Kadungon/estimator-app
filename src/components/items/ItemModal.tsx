@@ -12,10 +12,11 @@ interface Props {
   item?: Item;
   categories: Category[];
   onSave: () => void;
+  onCategoryAdded?: () => void;
   onClose: () => void;
 }
 
-export default function ItemModal({ item, categories, onSave, onClose }: Props) {
+export default function ItemModal({ item, categories, onSave, onCategoryAdded, onClose }: Props) {
   const [name, setName] = useState(item?.name || "");
   const [sku, setSku] = useState(item?.sku || "");
   const [unit, setUnit] = useState(item?.unit || "Pcs");
@@ -146,7 +147,7 @@ export default function ItemModal({ item, categories, onSave, onClose }: Props) 
 
         {showCatModal && (
           <CategoryModal 
-            onSave={() => { setShowCatModal(false); onSave(); }} 
+            onSave={() => { setShowCatModal(false); onCategoryAdded?.(); }} 
             onClose={() => setShowCatModal(false)} 
           />
         )}

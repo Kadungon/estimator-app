@@ -1,9 +1,10 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { LogIn, Building2, User, Lock, Loader2 } from "lucide-react";
+import { LogIn, User, Lock, Loader2 } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { useAuthStore } from "../../store/authStore";
 import { User as UserType, Company as CompanyType } from "../../types";
+import logo from "../../assets/logo.png";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -55,7 +56,7 @@ export default function LoginPage() {
       <div className="login-container">
         <div className="login-card" style={{ maxWidth: 460 }}>
           <div className="login-header">
-            <div className="logo-circle"><Building2 size={32} /></div>
+            <div className="logo-circle"><img src={logo} alt="Estima" style={{ width: 42, height: 42 }} /></div>
             <h1>Select Company</h1>
             <p>Welcome, {loggedInUser.username}. Choose a company to manage.</p>
           </div>
@@ -91,9 +92,9 @@ export default function LoginPage() {
       <div className="login-card">
         <div className="login-header">
           <div className="logo-circle">
-            <Building2 size={32} />
+            <img src={logo} alt="Estima" style={{ width: 42, height: 42 }} />
           </div>
-          <h1>QuickEstimate</h1>
+          <h1>Estima</h1>
           <p>Sign in to manage your estimations</p>
         </div>
 

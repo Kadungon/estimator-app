@@ -3,7 +3,7 @@ import { Toaster } from "react-hot-toast";
 import { useEffect, useState } from "react";
 import {
   ReceiptText, Package, History, Settings as SettingsIcon,
-  Sun, Moon, Plus, LogOut, Building2,
+  Sun, Moon, Plus, LogOut,
 } from "lucide-react";
 import { getSettings } from "./lib/tauri";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
@@ -13,6 +13,7 @@ import ItemsPage from "./components/items/ItemsPage";
 import EstimatesPage from "./components/estimates/EstimatesPage";
 import SettingsPage from "./components/settings/SettingsPage";
 import LoginPage from "./components/auth/LoginPage";
+import logo from "./assets/logo.png";
 
 function Inner() {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
@@ -51,9 +52,9 @@ function Inner() {
     <div className="app-shell" data-theme={theme}>
       {/* ── Top Bar ── */}
       <header className="app-topbar">
-        <span className="logo" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Building2 size={18} />
-          {company?.name || "QuickEstimate"}
+        <span className="logo" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <img src={logo} alt="Estima" style={{ width: 24, height: 24, borderRadius: 4 }} />
+          {company?.name || "Estima"}
         </span>
         <div className="spacer" />
         

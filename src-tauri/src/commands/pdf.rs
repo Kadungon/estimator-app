@@ -18,7 +18,7 @@ pub fn generate_pdf(estimate_id: i64, save_path: String, page_size: String) -> R
     };
 
     let (doc, page1, layer1) =
-        PdfDocument::new("QuickEstimate", Mm(page_w), Mm(page_h), "Layer 1");
+        PdfDocument::new("Estima", Mm(page_w), Mm(page_h), "Layer 1");
     let current_layer = doc.get_page(page1).get_layer(layer1);
 
 
@@ -44,7 +44,7 @@ pub fn generate_pdf(estimate_id: i64, save_path: String, page_size: String) -> R
         map
     };
 
-    let shop_name = settings.get("shop_name").cloned().unwrap_or_else(|| "QuickEstimate".into());
+    let shop_name = settings.get("shop_name").cloned().unwrap_or_else(|| "Estima".into());
     let shop_address = settings.get("shop_address").cloned().unwrap_or_default();
     let shop_phone = settings.get("shop_phone").cloned().unwrap_or_default();
 

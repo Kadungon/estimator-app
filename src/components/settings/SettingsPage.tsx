@@ -193,7 +193,7 @@ export default function SettingsPage({ onThemeChange }: Props) {
           {activeTab === "admin" && <AdminPanel />}
 
           <div style={{ marginTop: 32, padding: 20, borderTop: "1px solid var(--border)", textAlign: "center", color: "var(--text-muted)", fontSize: 11 }}>
-            <p>QuickEstimate v0.1.0 • Running on Local Desktop Environment</p>
+            <p>Estima v0.1.0 • Running on Local Desktop Environment</p>
           </div>
         </div>
       </div>

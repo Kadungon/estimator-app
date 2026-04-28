@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════
-   QuickEstimate — Design System
+   Estima — Design System
    ═══════════════════════════════════════════════════════════════ */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
@@ -841,6 +841,22 @@ kbd {
   }
   .print-only * {
     visibility: visible !important;
+  }
+
+  /* A5 Layout Adjustments */
+  .print-a5 {
+    width: 148mm !important;
+    font-size: 9pt !important;
+  }
+  .print-a5 .data-table {
+    font-size: 8.5pt !important;
+  }
+  .print-a5 .data-table th, 
+  .print-a5 .data-table td {
+    padding: 6px 4px !important;
+  }
+  .print-a5 .totals-section {
+    width: 220px !important;
   }
 }
 
