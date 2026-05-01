@@ -53,6 +53,10 @@ pub fn run() {
             commands::admin::set_db_path,
             // PDF
             commands::pdf::generate_pdf,
+            // Metrics
+            commands::metrics::get_dashboard_kpis,
+            commands::metrics::get_revenue_trends,
+            commands::metrics::get_top_items,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

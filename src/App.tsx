@@ -3,11 +3,12 @@ import { Toaster } from "react-hot-toast";
 import { useEffect, useState } from "react";
 import {
   ReceiptText, Package, History, Settings as SettingsIcon,
-  Sun, Moon, Plus, LogOut,
+  Sun, Moon, Plus, LogOut, LayoutDashboard,
 } from "lucide-react";
 import { getSettings } from "./lib/tauri";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useAuthStore } from "./store/authStore";
+import DashboardPage from "./components/dashboard/DashboardPage";
 import BillingPage from "./components/billing/BillingPage";
 import ItemsPage from "./components/items/ItemsPage";
 import EstimatesPage from "./components/estimates/EstimatesPage";
@@ -112,6 +113,16 @@ function Inner() {
           <span className="nav-section">Main</span>
 
           <NavLink
+            id="nav-dashboard"
+            to="/dashboard"
+            className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
+            title="Ctrl+D"
+          >
+            <LayoutDashboard size={16} /> Dashboard
+            <span style={{ marginLeft: "auto" }}><kbd>D</kbd></span>
+          </NavLink>
+
+          <NavLink
             id="nav-billing"
             to="/billing"
             className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
@@ -161,7 +172,8 @@ function Inner() {
       {/* ── Main content ── */}
       <main className="app-main">
         <Routes>
-          <Route path="/" element={<BillingPage />} />
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/billing" element={<BillingPage />} />
           <Route path="/items" element={<ItemsPage />} />
           <Route path="/estimates" element={<EstimatesPage />} />
@@ -187,7 +199,7 @@ function Inner() {
 
 export default function App() {
   return (
-    <MemoryRouter initialEntries={["/billing"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <MemoryRouter initialEntries={["/dashboard"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Inner />
     </MemoryRouter>
   );
