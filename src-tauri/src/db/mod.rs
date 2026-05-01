@@ -1,7 +1,7 @@
 use once_cell::sync::OnceCell;
 use rusqlite::{Connection, Result};
 use std::sync::Mutex;
-use tauri::Manager;
+// use tauri::Manager;
 
 static DB: OnceCell<Mutex<Connection>> = OnceCell::new();
 
