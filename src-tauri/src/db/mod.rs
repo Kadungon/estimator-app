@@ -18,53 +18,42 @@ pub fn get() -> &'static Mutex<Connection> {
     DB.get().expect("Database not initialised")
 }
 
-pub fn resolve_db_path(app: &tauri::AppHandle) -> std::path::PathBuf {
-    let exe_dir = app.path().executable_dir().ok();
+pub fn resolve_db_path(_app: &tauri::AppHandle) -> std::path::PathBuf {
+    let exe_dir = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(|p| p.to_path_buf()));
     
-    // 1. Check for db_path.json in exe_dir (Custom Path)
     if let Some(ref dir) = exe_dir {
+        // 1. Check for db_path.json in exe_dir (Custom Path Override)
         let config_path = dir.join("db_path.json");
         if config_path.exists() {
             if let Ok(content) = std::fs::read_to_string(&config_path) {
-                // The JSON should be a simple string
                 if let Ok(path_str) = serde_json::from_str::<String>(&content) {
                     let mut path = std::path::PathBuf::from(&path_str);
                     
-                    // If path is relative, resolve it relative to the executable directory
+                    // Resolve relative paths against the current executable directory
                     if path.is_relative() {
                         path = dir.join(path);
                     }
                     
                     // Ensure the parent directory exists
-                    if path.parent().map(|p| p.exists()).unwrap_or(false) {
-                        return path;
+                    if let Some(parent) = path.parent() {
+                        if !parent.exists() {
+                            let _ = std::fs::create_dir_all(parent);
+                        }
                     }
+                    
+                    return path;
                 }
             }
         }
-    }
-
-    // 2. Default: Portable mode (db next to exe)
-    if let Some(dir) = exe_dir {
-        let db_path = dir.join("estima.db");
         
-        // Priority A: If the file already exists here, always use it (True Portable)
-        if db_path.exists() {
-            return db_path;
-        }
-
-        // Priority B: Try to use the exe dir if it is writable
-        let test_file = dir.join(".test_write");
-        if std::fs::write(&test_file, "").is_ok() {
-            let _ = std::fs::remove_file(test_file);
-            return db_path;
-        }
+        // 2. Always use the directory of the executable
+        return dir.join("estima.db");
     }
 
-    // 3. Fallback to standard app data dir (System Install mode)
-    let app_data_dir = app.path().app_data_dir().expect("failed to get app data dir");
-    let _ = std::fs::create_dir_all(&app_data_dir);
-    app_data_dir.join("estima.db")
+    // 3. Fallback to current working directory if executable path cannot be determined
+    std::path::PathBuf::from("estima.db")
 }
 
 pub fn get_db_path(app: &tauri::AppHandle) -> Result<std::path::PathBuf, String> {
