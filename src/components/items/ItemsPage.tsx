@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { Plus, Search, Edit2, Trash2, Tag, X, FileSpreadsheet } from "lucide-react";
-import { getItems, deleteItem, getCategories, deleteCategory } from "../../lib/tauri";
+import { getItems, getItemsCount, deleteItem, getCategories, deleteCategory } from "../../lib/tauri";
 import { Item, Category } from "../../types";
 import { useAuthStore } from "../../store/authStore";
 import ItemModal from "./ItemModal";
@@ -21,6 +21,11 @@ export default function ItemsPage() {
   const [showImport, setShowImport] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<{ id: number; type: 'item' | 'category' } | null>(null);
 
+  // Pagination states
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+  const [totalCount, setTotalCount] = useState(0);
+
   const companyId = useAuthStore(state => state.company?.id);
   const isAdmin = useAuthStore(state => state.isAdmin());
 
@@ -28,11 +33,13 @@ export default function ItemsPage() {
     if (!companyId) return;
     setLoading(true);
     try {
-      const [itemList, catList] = await Promise.all([
-        getItems(companyId, search, selectedCat),
+      const [itemList, count, catList] = await Promise.all([
+        getItems(companyId, search, selectedCat, page, pageSize),
+        getItemsCount(companyId, search, selectedCat),
         getCategories(companyId)
       ]);
       setItems(itemList);
+      setTotalCount(count);
       setCategories(catList);
     } catch (e) {
       toast.error("Failed to load data");
@@ -42,8 +49,12 @@ export default function ItemsPage() {
   };
 
   useEffect(() => {
+    setPage(1);
+  }, [search, selectedCat]);
+
+  useEffect(() => {
     loadData();
-  }, [companyId, search, selectedCat]);
+  }, [companyId, search, selectedCat, page, pageSize]);
 
   const handleDelete = async () => {
     if (!confirmDelete) return;
@@ -169,69 +180,153 @@ export default function ItemsPage() {
             <p>Add your first item to the master database to get started.</p>
           </div>
         ) : (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Item Details</th>
-                <th>Category</th>
-                <th style={{ width: 100 }}>Unit</th>
-                <th style={{ width: 100 }}>Stock</th>
-                <th style={{ width: 220 }}>Prices</th>
-                <th style={{ width: 100 }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map(item => (
-                <tr key={item.id}>
-                  <td>
-                    <div style={{ fontWeight: 700, fontSize: 14 }}>{item.name}</div>
-                    <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
-                      {item.sku ? `SKU: ${item.sku}` : "No SKU"}
-                    </div>
-                  </td>
-                  <td>
-                    {item.category_name ? (
-                      <span className="badge badge-primary"><Tag size={10} style={{ marginRight: 4 }} /> {item.category_name}</span>
-                    ) : (
-                      <span style={{ color: "var(--text-muted)", fontSize: 12 }}>—</span>
-                    )}
-                  </td>
-                  <td>
-                    <span style={{ fontSize: 13 }}>{item.unit || "Pcs"}</span>
-                  </td>
-                  <td>
-                    <span style={{ fontWeight: 600, fontSize: 13, color: item.stock <= 5 ? "var(--error)" : "inherit" }}>
-                      {item.stock}
-                    </span>
-                  </td>
-                  <td>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                      {item.prices.map(p => (
-                        <div key={p.id} style={{ fontSize: 12 }}>
-                          <span style={{ color: "var(--text-muted)" }}>{p.label}:</span>{" "}
-                          <span style={{ fontWeight: 600 }}>₹{p.price.toFixed(2)}</span>
+          <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+            <div style={{ flex: 1, overflowY: "auto" }}>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Item Details</th>
+                    <th>Category</th>
+                    <th style={{ width: 100 }}>Unit</th>
+                    <th style={{ width: 100 }}>Stock</th>
+                    <th style={{ width: 220 }}>Prices</th>
+                    <th style={{ width: 100 }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map(item => (
+                    <tr key={item.id}>
+                      <td>
+                        <div style={{ fontWeight: 700, fontSize: 14 }}>{item.name}</div>
+                        <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
+                          {item.sku ? `SKU: ${item.sku}` : "No SKU"}
                         </div>
-                      ))}
-                    </div>
-                  </td>
-                  <td>
-                    {isAdmin ? (
-                      <div style={{ display: "flex", gap: 6 }}>
-                        <button className="btn btn-icon btn-ghost" onClick={() => setShowModal({ open: true, item })} title="Edit">
-                          <Edit2 size={14} />
-                        </button>
-                        <button className="btn btn-icon btn-danger" onClick={() => setConfirmDelete({ id: item.id, type: 'item' })} title="Delete">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Read-only</div>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                      </td>
+                      <td>
+                        {item.category_name ? (
+                          <span className="badge badge-primary"><Tag size={10} style={{ marginRight: 4 }} /> {item.category_name}</span>
+                        ) : (
+                          <span style={{ color: "var(--text-muted)", fontSize: 12 }}>—</span>
+                        )}
+                      </td>
+                      <td>
+                        <span style={{ fontSize: 13 }}>{item.unit || "Pcs"}</span>
+                      </td>
+                      <td>
+                        <span style={{ fontWeight: 600, fontSize: 13, color: item.stock <= 5 ? "var(--error)" : "inherit" }}>
+                          {item.stock}
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                          {item.prices.map(p => (
+                            <div key={p.id} style={{ fontSize: 12 }}>
+                              <span style={{ color: "var(--text-muted)" }}>{p.label}:</span>{" "}
+                              <span style={{ fontWeight: 600 }}>₹{p.price.toFixed(2)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                      <td>
+                        {isAdmin ? (
+                          <div style={{ display: "flex", gap: 6 }}>
+                            <button className="btn btn-icon btn-ghost" onClick={() => setShowModal({ open: true, item })} title="Edit">
+                              <Edit2 size={14} />
+                            </button>
+                            <button className="btn btn-icon btn-danger" onClick={() => setConfirmDelete({ id: item.id, type: 'item' })} title="Delete">
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Read-only</div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Controls */}
+            {totalCount > 0 && (
+              <div style={{ 
+                display: "flex", 
+                alignItems: "center", 
+                justifyContent: "space-between", 
+                padding: "12px 18px", 
+                borderTop: "1px solid var(--border)",
+                background: "var(--surface)",
+                borderRadius: "0 0 12px 12px",
+                flexShrink: 0
+              }}>
+                <div style={{ fontSize: 13, color: "var(--text-muted)" }}>
+                  Showing <span style={{ fontWeight: 600, color: "var(--text)" }}>{Math.min((page - 1) * pageSize + 1, totalCount)}</span> to{" "}
+                  <span style={{ fontWeight: 600, color: "var(--text)" }}>{Math.min(page * pageSize, totalCount)}</span> of{" "}
+                  <span style={{ fontWeight: 600, color: "var(--text)" }}>{totalCount}</span> items
+                </div>
+                
+                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text-muted)" }}>
+                    <span>Rows:</span>
+                    <select 
+                      className="select" 
+                      style={{ width: 75, padding: "4px 8px", height: "30px", fontSize: 12 }}
+                      value={pageSize}
+                      onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+                    >
+                      <option value={10}>10</option>
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                  </div>
+
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button 
+                      className="btn btn-ghost btn-sm"
+                      disabled={page === 1}
+                      onClick={() => setPage(p => Math.max(p - 1, 1))}
+                      style={{ minWidth: 70 }}
+                    >
+                      Previous
+                    </button>
+                    
+                    {/* Dynamic Page Numbers */}
+                    {(() => {
+                      const totalPages = Math.ceil(totalCount / pageSize);
+                      return Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+                        .map((p, idx, arr) => {
+                          const prev = arr[idx - 1];
+                          const showEllipsis = prev && p - prev > 1;
+                          return (
+                            <div key={p} style={{ display: "flex", alignItems: "center" }}>
+                              {showEllipsis && <span style={{ color: "var(--text-muted)", padding: "0 6px" }}>...</span>}
+                              <button
+                                className={`btn btn-sm ${page === p ? "btn-primary" : "btn-ghost"}`}
+                                style={{ minWidth: 32, padding: "0 8px" }}
+                                onClick={() => setPage(p)}
+                              >
+                                {p}
+                              </button>
+                            </div>
+                          );
+                        });
+                    })()}
+
+                    <button 
+                      className="btn btn-ghost btn-sm"
+                      disabled={page >= Math.ceil(totalCount / pageSize)}
+                      onClick={() => setPage(p => Math.min(p + 1, Math.ceil(totalCount / pageSize)))}
+                      style={{ minWidth: 70 }}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
 

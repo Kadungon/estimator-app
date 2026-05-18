@@ -112,6 +112,8 @@ pub struct Estimate {
     pub items: Vec<EstimateItem>,
     pub created_at: String,
     pub pdf_path: Option<String>,
+    #[serde(default)]
+    pub deduct_stock: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

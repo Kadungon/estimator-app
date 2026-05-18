@@ -29,6 +29,7 @@ pub struct EstimateInput {
     pub total: f64,
     pub amount_paid: Option<f64>,
     pub items: Vec<EstimateItemInput>,
+    pub deduct_stock: Option<bool>,
 }
 
 fn _generate_next_est_number(conn: &rusqlite::Connection, company_id: i64) -> Result<String, String> {
@@ -117,7 +118,7 @@ pub fn get_unique_customers(company_id: i64) -> Result<Vec<String>, String> {
 fn _get_estimate(conn: &rusqlite::Connection, id: i64) -> Result<Estimate, String> {
     let est = conn
         .query_row(
-            "SELECT id, company_id, est_number, customer, customer_id, notes, subtotal, discount, total, amount_paid, pdf_path, created_at
+            "SELECT id, company_id, est_number, customer, customer_id, notes, subtotal, discount, total, amount_paid, pdf_path, created_at, deduct_stock
              FROM estimates WHERE id = ?1",
             [id],
             |row| {
@@ -134,6 +135,7 @@ fn _get_estimate(conn: &rusqlite::Connection, id: i64) -> Result<Estimate, Strin
                     amount_paid: row.get(9).unwrap_or(0.0),
                     pdf_path: row.get(10)?,
                     created_at: row.get(11)?,
+                    deduct_stock: row.get::<_, i64>(12)? != 0,
                     items: vec![],
                 })
             },
@@ -180,13 +182,51 @@ pub fn save_estimate(input: EstimateInput) -> Result<Estimate, String> {
 
     let est_id: i64;
     let amount_paid = input.amount_paid.unwrap_or(0.0);
+    let new_deduct = input.deduct_stock.unwrap_or(false);
+
+    // Track old deduction state
+    let mut old_deducted = false;
+    let mut old_items: Vec<(Option<i64>, f64)> = Vec::new();
 
     if let Some(id) = input.id {
+        // Fetch old estimate info first
+        let old_est_info: Result<(i64, bool), String> = tx.query_row(
+            "SELECT id, deduct_stock FROM estimates WHERE id = ?1",
+            [id],
+            |r| Ok((r.get(0)?, r.get::<_, i64>(1)? != 0))
+        ).map_err(|e| e.to_string());
+
+        if let Ok((_, was_deducted)) = old_est_info {
+            old_deducted = was_deducted;
+            if old_deducted {
+                // Fetch old items so we can revert their stock
+                let mut stmt = tx.prepare("SELECT item_id, quantity FROM estimate_items WHERE estimate_id = ?1").map_err(|e| e.to_string())?;
+                let rows = stmt.query_map([id], |r| Ok((r.get::<_, Option<i64>>(0)?, r.get::<_, f64>(1)?))).map_err(|e| e.to_string())?;
+                for r in rows {
+                    if let Ok(pair) = r {
+                        old_items.push(pair);
+                    }
+                }
+            }
+        }
+
+        // Revert old stock deduction if it was previously deducted
+        if old_deducted {
+            for (item_id, qty) in &old_items {
+                if let Some(id) = item_id {
+                    tx.execute(
+                        "UPDATE items SET stock = stock + ?1 WHERE id = ?2",
+                        params![qty, id],
+                    ).map_err(|e| e.to_string())?;
+                }
+            }
+        }
+
         // UPDATE existing estimate
         tx.execute(
             "UPDATE estimates 
-             SET customer = ?1, customer_id = ?2, notes = ?3, subtotal = ?4, discount = ?5, total = ?6, amount_paid = ?7
-             WHERE id = ?8 AND company_id = ?9",
+             SET customer = ?1, customer_id = ?2, notes = ?3, subtotal = ?4, discount = ?5, total = ?6, amount_paid = ?7, deduct_stock = ?8
+             WHERE id = ?9 AND company_id = ?10",
             params![
                 input.customer,
                 input.customer_id,
@@ -195,6 +235,7 @@ pub fn save_estimate(input: EstimateInput) -> Result<Estimate, String> {
                 input.discount,
                 input.total,
                 amount_paid,
+                if new_deduct { 1 } else { 0 },
                 id,
                 input.company_id
             ],
@@ -211,8 +252,8 @@ pub fn save_estimate(input: EstimateInput) -> Result<Estimate, String> {
         let est_number = _generate_next_est_number(&tx, input.company_id)?;
 
         tx.execute(
-            "INSERT INTO estimates (company_id, est_number, customer, customer_id, notes, subtotal, discount, total, amount_paid)
-             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)",
+            "INSERT INTO estimates (company_id, est_number, customer, customer_id, notes, subtotal, discount, total, amount_paid, deduct_stock)
+             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)",
             params![
                 input.company_id,
                 est_number,
@@ -222,7 +263,8 @@ pub fn save_estimate(input: EstimateInput) -> Result<Estimate, String> {
                 input.subtotal,
                 input.discount,
                 input.total,
-                amount_paid
+                amount_paid,
+                if new_deduct { 1 } else { 0 }
             ],
         )
         .map_err(|e| e.to_string())?;
@@ -230,6 +272,7 @@ pub fn save_estimate(input: EstimateInput) -> Result<Estimate, String> {
         est_id = tx.last_insert_rowid();
     }
 
+    // Insert estimate items and apply stock deduction if requested
     for item in &input.items {
         let line_total = item.unit_price * item.quantity;
         tx.execute(
@@ -247,6 +290,15 @@ pub fn save_estimate(input: EstimateInput) -> Result<Estimate, String> {
             ],
         )
         .map_err(|e| e.to_string())?;
+
+        if new_deduct {
+            if let Some(item_id) = item.item_id {
+                tx.execute(
+                    "UPDATE items SET stock = stock - ?1 WHERE id = ?2",
+                    params![item.quantity, item_id],
+                ).map_err(|e| e.to_string())?;
+            }
+        }
     }
 
     let estimate = _get_estimate(&tx, est_id)?;
@@ -257,9 +309,32 @@ pub fn save_estimate(input: EstimateInput) -> Result<Estimate, String> {
 
 #[command]
 pub fn delete_estimate(id: i64) -> Result<(), String> {
-    let conn = db::get().lock().map_err(|e| e.to_string())?;
-    conn.execute("DELETE FROM estimates WHERE id = ?1", [id])
-        .map_err(|e| e.to_string())?;
+    let mut conn = db::get().lock().map_err(|e| e.to_string())?;
+    let tx = conn.transaction().map_err(|e| e.to_string())?;
+
+    // Check if it was deducted
+    let deducted: bool = tx.query_row(
+        "SELECT COALESCE(deduct_stock, 0) FROM estimates WHERE id = ?1",
+        [id],
+        |r| Ok(r.get::<_, i64>(0)? != 0)
+    ).unwrap_or(false);
+
+    if deducted {
+        // Fetch items and revert stock
+        let mut stmt = tx.prepare("SELECT item_id, quantity FROM estimate_items WHERE estimate_id = ?1").map_err(|e| e.to_string())?;
+        let rows = stmt.query_map([id], |r| Ok((r.get::<_, Option<i64>>(0)?, r.get::<_, f64>(1)?))).map_err(|e| e.to_string())?;
+        for r in rows {
+            if let Ok((Some(item_id), qty)) = r {
+                tx.execute(
+                    "UPDATE items SET stock = stock + ?1 WHERE id = ?2",
+                    params![qty, item_id],
+                ).map_err(|e| e.to_string())?;
+            }
+        }
+    }
+
+    tx.execute("DELETE FROM estimates WHERE id = ?1", [id]).map_err(|e| e.to_string())?;
+    tx.commit().map_err(|e| e.to_string())?;
     Ok(())
 }
 

@@ -26,6 +26,7 @@ pub fn run() {
             commands::categories::delete_category,
             // Items
             commands::items::get_items,
+            commands::items::get_items_count,
             commands::items::get_item,
             commands::items::create_item,
             commands::items::update_item,

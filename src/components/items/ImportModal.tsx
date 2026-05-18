@@ -4,7 +4,7 @@ import { X, Upload, Check, AlertCircle, FileSpreadsheet } from "lucide-react";
 import toast from "react-hot-toast";
 import { open } from "@tauri-apps/plugin-dialog";
 import { readFile } from "@tauri-apps/plugin-fs";
-import { bulkCreateItems } from "../../lib/tauri";
+import { bulkCreateItems, createCategory } from "../../lib/tauri";
 import { useAuthStore } from "../../store/authStore";
 
 interface Props {
@@ -76,10 +76,11 @@ export default function ImportModal({ onImport, onClose }: Props) {
         return {
           company_id: companyId,
           name: String(row[nameCol] || "Unnamed Item"),
-          sku: skuCol ? String(row[skuCol] || "") : "",
+          sku: skuCol && row[skuCol] !== undefined && row[skuCol] !== null && String(row[skuCol]).trim() !== "" ? String(row[skuCol]).trim() : null,
           unit: unitCol ? String(row[unitCol] || "Pcs") : "Pcs",
           description: "",
           category_id: categoryId,
+          categoryName: catCol && row[catCol] ? String(row[catCol]).trim() : null,
           stock: stock,
           prices: [
             { label: "Retail 1", price: r1 },
@@ -101,7 +102,49 @@ export default function ImportModal({ onImport, onClose }: Props) {
     if (!companyId || items.length === 0) return;
     setLoading(true);
     try {
-      await bulkCreateItems(companyId, items);
+      // Gather all unique category names that are non-empty
+      const newCatNames = Array.from(
+        new Set(
+          items
+            .map(it => it.categoryName)
+            .filter((name): name is string => typeof name === "string" && name.trim() !== "")
+        )
+      );
+
+      // Map current categories to their IDs
+      const categoryMap = {
+        ...categories.reduce((acc, cat) => ({ ...acc, [cat.name.toLowerCase()]: cat.id }), {} as Record<string, number>)
+      };
+
+      // Create missing categories sequentially and update map
+      for (const name of newCatNames) {
+        const key = name.toLowerCase();
+        if (!categoryMap[key]) {
+          try {
+            const newCat = await createCategory(companyId, name);
+            categoryMap[key] = newCat.id;
+          } catch (err) {
+            console.error(`Failed to create category: ${name}`, err);
+          }
+        }
+      }
+
+      // Map each item's category_id to the created or existing category ID
+      const cleanedItems = items.map(it => {
+        let categoryId = it.category_id;
+        if (!categoryId && it.categoryName) {
+          categoryId = categoryMap[it.categoryName.toLowerCase()] || null;
+        }
+
+        // Clean the payload to exclude the frontend-only categoryName
+        const { categoryName, ...rest } = it;
+        return {
+          ...rest,
+          category_id: categoryId
+        };
+      });
+
+      await bulkCreateItems(companyId, cleanedItems);
       toast.success(`Successfully imported ${items.length} items`);
       onImport();
       onClose();

@@ -164,7 +164,8 @@ fn run_migrations(conn: &Connection) -> Result<()> {
             total       REAL NOT NULL DEFAULT 0,
             amount_paid REAL NOT NULL DEFAULT 0,
             pdf_path    TEXT,
-            created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+            created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+            deduct_stock INTEGER NOT NULL DEFAULT 0
         );
 
         CREATE TABLE IF NOT EXISTS estimate_items (
@@ -194,6 +195,7 @@ fn run_migrations(conn: &Connection) -> Result<()> {
     let _ = conn.execute("ALTER TABLE categories ADD COLUMN company_id INTEGER NOT NULL DEFAULT 1", []);
     let _ = conn.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'", []);
     let _ = conn.execute("ALTER TABLE items ADD COLUMN stock REAL NOT NULL DEFAULT 0", []);
+    let _ = conn.execute("ALTER TABLE estimates ADD COLUMN deduct_stock INTEGER NOT NULL DEFAULT 0", []);
     let _ = conn.execute("UPDATE users SET role = 'admin' WHERE id = 1", []);
     
     // Default units

@@ -42,8 +42,10 @@ export const deleteCategory = (id: number) =>
   safeInvoke<void>("delete_category", { id });
 
 // Items
-export const getItems = (companyId: number, pattern?: string, categoryId?: number) =>
-  safeInvoke<Item[]>("get_items", { companyId, pattern: pattern ?? "", categoryId: categoryId ?? null });
+export const getItems = (companyId: number, pattern?: string, categoryId?: number, page?: number, limit?: number) =>
+  safeInvoke<Item[]>("get_items", { companyId, pattern: pattern ?? "", categoryId: categoryId ?? null, page: page ?? null, limit: limit ?? null });
+export const getItemsCount = (companyId: number, pattern?: string, categoryId?: number) =>
+  safeInvoke<number>("get_items_count", { companyId, pattern: pattern ?? "", categoryId: categoryId ?? null });
 export const getItem = (id: number) => safeInvoke<Item>("get_item", { id });
 export const createItem = (payload: unknown) =>
   safeInvoke<Item>("create_item", { payload });

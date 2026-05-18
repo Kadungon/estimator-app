@@ -157,6 +157,7 @@ export default function BillingPage() {
         discount: cart.discount,
         total: cart.total(),
         amount_paid: cart.amountPaid,
+        deduct_stock: cart.deductStock,
         items: cart.items.map((i) => ({
           item_id: i.item_id,
           name: i.name,
@@ -368,6 +369,41 @@ export default function BillingPage() {
               <span style={{ color: Math.max(0, total - cart.amountPaid) > 0 ? "var(--error)" : "var(--text)" }}>
                 Rs.{Math.max(0, total - cart.amountPaid).toFixed(2)}
               </span>
+            </div>
+
+            <div style={{ 
+              marginTop: 16, 
+              display: "flex", 
+              alignItems: "center", 
+              gap: 8, 
+              padding: "10px 12px", 
+              background: "var(--surface-2)", 
+              borderRadius: "var(--radius-sm)",
+              border: "1px solid var(--border)"
+            }}>
+              <input 
+                type="checkbox" 
+                id="deduct-stock-checkbox"
+                checked={cart.deductStock}
+                onChange={(e) => cart.setDeductStock(e.target.checked)}
+                style={{ 
+                  width: 16, 
+                  height: 16, 
+                  accentColor: "var(--primary)", 
+                  cursor: "pointer" 
+                }}
+              />
+              <label 
+                htmlFor="deduct-stock-checkbox" 
+                style={{ 
+                  fontSize: 12, 
+                  fontWeight: 600, 
+                  cursor: "pointer",
+                  userSelect: "none"
+                }}
+              >
+                Deduct Inventory Stock
+              </label>
             </div>
 
             <div style={{ marginTop: 20, padding: "12px", background: "var(--accent-dim)", borderRadius: "var(--radius-sm)", fontSize: 11, color: "var(--text-muted)", border: "1px solid var(--accent-dim)" }}>

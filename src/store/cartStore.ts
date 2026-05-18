@@ -12,6 +12,7 @@ interface CartStore {
   discount: number;
   amountPaid: number;
   initialPaid: number;
+  deductStock: boolean;
 
   setEstimateId: (id: number | null) => void;
   addItem: (item: Omit<CartItem, "tempId">) => void;
@@ -24,6 +25,7 @@ interface CartStore {
   setNotes: (v: string) => void;
   setDiscount: (v: number) => void;
   setAmountPaid: (v: number) => void;
+  setDeductStock: (v: boolean) => void;
   clearCart: () => void;
   loadEstimate: (estimate: any) => void;
 
@@ -42,6 +44,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
   discount: 0,
   amountPaid: 0,
   initialPaid: 0,
+  deductStock: false,
 
   setEstimateId: (id) => set({ estimateId: id }),
 
@@ -58,6 +61,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
       discount: est.discount,
       amountPaid: est.amount_paid || 0,
       initialPaid: est.amount_paid || 0,
+      deductStock: est.deduct_stock || false,
       items: est.items.map((i: any) => ({
         tempId: uuidv4(),
         item_id: i.item_id,
@@ -98,6 +102,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
   setNotes: (notes) => set({ notes }),
   setDiscount: (discount) => set({ discount }),
   setAmountPaid: (amountPaid) => set({ amountPaid }),
+  setDeductStock: (deductStock) => set({ deductStock }),
 
   clearCart: () => set({ 
     estimateId: null, 
@@ -108,7 +113,8 @@ export const useCartStore = create<CartStore>((set, get) => ({
     notes: "", 
     discount: 0, 
     amountPaid: 0,
-    initialPaid: 0
+    initialPaid: 0,
+    deductStock: false
   }),
 
   subtotal: () => get().items.reduce((s, i) => s + i.unit_price * i.quantity, 0),
