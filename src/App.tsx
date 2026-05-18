@@ -3,7 +3,7 @@ import { Toaster } from "react-hot-toast";
 import { useEffect, useState } from "react";
 import {
   ReceiptText, Package, History, Settings as SettingsIcon,
-  Sun, Moon, Plus, LogOut, LayoutDashboard,
+  Sun, Moon, Plus, LogOut, LayoutDashboard, Users,
 } from "lucide-react";
 import { getSettings } from "./lib/tauri";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
@@ -13,6 +13,7 @@ import BillingPage from "./components/billing/BillingPage";
 import ItemsPage from "./components/items/ItemsPage";
 import EstimatesPage from "./components/estimates/EstimatesPage";
 import SettingsPage from "./components/settings/SettingsPage";
+import CustomersPage from "./components/customers/CustomersPage";
 import LoginPage from "./components/auth/LoginPage";
 import logo from "./assets/logo.png";
 
@@ -143,6 +144,16 @@ function Inner() {
           </NavLink>
 
           <NavLink
+            id="nav-customers"
+            to="/customers"
+            className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
+            title="Ctrl+C"
+          >
+            <Users size={16} /> Customers
+            <span style={{ marginLeft: "auto" }}><kbd>C</kbd></span>
+          </NavLink>
+
+          <NavLink
             id="nav-estimates"
             to="/estimates"
             className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
@@ -176,6 +187,7 @@ function Inner() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/billing" element={<BillingPage />} />
           <Route path="/items" element={<ItemsPage />} />
+          <Route path="/customers" element={<CustomersPage />} />
           <Route path="/estimates" element={<EstimatesPage />} />
           <Route path="/settings" element={<SettingsPage onThemeChange={setTheme} />} />
         </Routes>

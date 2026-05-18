@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { X, Plus, Trash2 } from "lucide-react";
-import { createItem, updateItem } from "../../lib/tauri";
-import { Item, Category } from "../../types";
+import { createItem, updateItem, getUnits } from "../../lib/tauri";
+import { Item, Category, Unit } from "../../types";
 import { useAuthStore } from "../../store/authStore";
 import CategoryModal from "./CategoryModal";
+import UnitModal from "./UnitModal";
 import NumericInput from "../common/NumericInput";
 
 
@@ -20,17 +21,35 @@ export default function ItemModal({ item, categories, onSave, onCategoryAdded, o
   const [name, setName] = useState(item?.name || "");
   const [sku, setSku] = useState(item?.sku || "");
   const [unit, setUnit] = useState(item?.unit || "Pcs");
+  const [stock, setStock] = useState(item?.stock || 0);
   const [categoryId, setCategoryId] = useState<number | undefined>(item?.category_id || undefined);
   const [prices, setPrices] = useState<{ label: string; price: number }[]>(
     item?.prices.map(p => ({ label: p.label, price: p.price })) || [
       { label: "Retail", price: 0 },
-      { label: "Wholesale", price: 0 }
+      { label: "Retail2", price: 0 }
     ]
   );
   const [loading, setLoading] = useState(false);
   const [showCatModal, setShowCatModal] = useState(false);
+  const [showUnitModal, setShowUnitModal] = useState(false);
+  const [units, setUnits] = useState<Unit[]>([]);
 
   const companyId = useAuthStore(state => state.company?.id);
+
+  const fetchUnits = async () => {
+    if (!companyId) return;
+    try {
+      const data = await getUnits(companyId);
+      setUnits(data);
+    } catch (e) {
+      console.error("Failed to load units", e);
+    }
+  };
+
+  useEffect(() => {
+    fetchUnits();
+  }, [companyId]);
+
 
   const addPrice = () => setPrices([...prices, { label: "", price: 0 }]);
   const removePrice = (idx: number) => setPrices(prices.filter((_, i) => i !== idx));
@@ -52,6 +71,7 @@ export default function ItemModal({ item, categories, onSave, onCategoryAdded, o
         unit: unit || "Pcs",
         description: null,
         category_id: categoryId || null,
+        stock: stock || 0,
         prices: prices.filter(p => p.label.trim() !== "")
       };
       if (item) {
@@ -84,14 +104,23 @@ export default function ItemModal({ item, categories, onSave, onCategoryAdded, o
             <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Samsung 25W Adapter" autoFocus />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr 1.2fr", gap: 12 }}>
-            <div className="input-group">
-              <label className="input-label">SKU / Barcode</label>
-              <input className="input" value={sku} onChange={(e) => setSku(e.target.value)} placeholder="Optional" />
-            </div>
+          <div className="input-group">
+            <label className="input-label">SKU / Barcode</label>
+            <input className="input" value={sku} onChange={(e) => setSku(e.target.value)} placeholder="Optional" />
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
             <div className="input-group">
               <label className="input-label">Unit</label>
-              <input className="input" value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="Pcs" />
+              <div style={{ display: "flex", gap: 6 }}>
+                <select className="select" value={unit} onChange={(e) => setUnit(e.target.value)} style={{ flex: 1 }}>
+                  {units.map(u => <option key={u.id} value={u.name}>{u.name}</option>)}
+                  {!units.find(u => u.name === unit) && <option value={unit}>{unit}</option>}
+                </select>
+                <button className="btn btn-icon btn-ghost" onClick={() => setShowUnitModal(true)} title="Add Unit" type="button">
+                   <Plus size={16} />
+                </button>
+              </div>
             </div>
             <div className="input-group">
               <label className="input-label">Category</label>
@@ -104,6 +133,13 @@ export default function ItemModal({ item, categories, onSave, onCategoryAdded, o
                    <Plus size={16} />
                 </button>
               </div>
+            </div>
+            <div className="input-group">
+              <label className="input-label">Stock Count</label>
+              <NumericInput 
+                value={stock} 
+                onChange={setStock} 
+              />
             </div>
           </div>
 
@@ -149,6 +185,13 @@ export default function ItemModal({ item, categories, onSave, onCategoryAdded, o
           <CategoryModal 
             onSave={() => { setShowCatModal(false); onCategoryAdded?.(); }} 
             onClose={() => setShowCatModal(false)} 
+          />
+        )}
+
+        {showUnitModal && (
+          <UnitModal 
+            onSave={() => { setShowUnitModal(false); fetchUnits(); }} 
+            onClose={() => setShowUnitModal(false)} 
           />
         )}
       </div>

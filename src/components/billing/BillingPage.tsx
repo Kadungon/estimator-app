@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { Printer, Save, Trash2, User } from "lucide-react";
+import { Printer, Save, Trash2, User, ArrowLeft } from "lucide-react";
 import { save as saveDialog } from "@tauri-apps/plugin-dialog";
 import { openPath } from "@tauri-apps/plugin-opener";
 
 import { useCartStore } from "../../store/cartStore";
-import { saveEstimate, generatePdf, createItem, getSettings } from "../../lib/tauri";
-import { Item, Settings } from "../../types";
+import { saveEstimate, createItem, getSettings, getCustomers } from "../../lib/tauri";
+import { Item, Settings, Customer } from "../../types";
 import { useAuthStore } from "../../store/authStore";
 
 import SearchBar from "./SearchBar";
@@ -23,12 +24,14 @@ export default function BillingPage() {
   const cart = useCartStore();
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [priceLabelCtx, setPriceLabelCtx] = useState<{ tempId: string; item: Item | null; prices: { label: string; price: number }[] } | null>(null);
+  const [addAmount, setAddAmount] = useState(0);
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const [showSaveItems, setShowSaveItems] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [pendingSave, setPendingSave] = useState(false);
   const [confirmSetting, setConfirmSetting] = useState(true);
   const [settings, setSettings] = useState<Settings | null>(null);
+  const [customers, setCustomers] = useState<Customer[]>([]);
 
   const companyId = useAuthStore(state => state.company?.id);
 
@@ -39,7 +42,16 @@ export default function BillingPage() {
         setConfirmSetting(s.confirm_save !== "false");
       })
       .catch(() => { });
-  }, []);
+      
+    if (companyId) {
+      getCustomers(companyId).then(setCustomers).catch(console.error);
+    }
+  }, [companyId]);
+
+  // Reset addAmount when estimate changes
+  useEffect(() => {
+    setAddAmount(0);
+  }, [cart.estimateId]);
 
 
 
@@ -136,12 +148,15 @@ export default function BillingPage() {
       }
 
       const estimate = await saveEstimate({
+        id: cart.estimateId,
         company_id: companyId,
         customer: cart.customer || null,
+        customer_id: cart.customerId || null,
         notes: cart.notes || null,
         subtotal: cart.subtotal(),
         discount: cart.discount,
         total: cart.total(),
+        amount_paid: cart.amountPaid,
         items: cart.items.map((i) => ({
           item_id: i.item_id,
           name: i.name,
@@ -152,22 +167,7 @@ export default function BillingPage() {
         })),
       });
 
-      toast.success(`Saved as ${estimate.est_number}`);
-
-      // Ask where to save PDF
-      const defaultDir = `${window.navigator.userAgent.includes("Linux") ? "/home" : "~"}/Documents/Estimates`;
-      const savePath = await saveDialog({
-        title: "Save Estimate PDF",
-        defaultPath: `${defaultDir}/${estimate.est_number}.pdf`,
-        filters: [{ name: "PDF", extensions: ["pdf"] }],
-      });
-
-      if (savePath) {
-        const pdfPath = await generatePdf(estimate.id, savePath, settings?.pdf_layout || "A4");
-        toast.success("PDF saved!");
-        await openPath(pdfPath);
-      }
-
+      toast.success(cart.estimateId ? `Updated ${estimate.est_number}` : `Saved as ${estimate.est_number}`);
       cart.clearCart();
     } catch (e) {
       toast.error(String(e));
@@ -181,13 +181,27 @@ export default function BillingPage() {
   const subtotal = cart.subtotal();
   const total = cart.total();
 
+  const location = useLocation();
+  const navigate = useNavigate();
+  const fromCustomerLedger = location.state?.fromCustomerLedger as number | undefined;
+
   return (
     <>
       <div className={`printable-content ${settings?.pdf_layout === 'A5' ? 'print-a5' : 'print-a4'}`} style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
       {/* Top bar */}
       <div className="page-header no-print" style={{ alignItems: "center" }}>
-        <span className="page-title">New Estimate</span>
-        <div style={{ flex: 1 }}>
+        {fromCustomerLedger && (
+          <button 
+            className="btn btn-ghost btn-sm btn-icon" 
+            style={{ marginRight: 8 }}
+            onClick={() => navigate("/customers", { state: { openLedger: fromCustomerLedger } })}
+            title="Back to Ledger"
+          >
+            <ArrowLeft size={16} />
+          </button>
+        )}
+        <span className="page-title">{cart.estimateId ? `Edit ${cart.estNumber || 'Estimate'}` : "New Estimate"}</span>
+        <div style={{ flex: 1, marginLeft: 20 }}>
           <SearchBar onAddItem={handleAddFromSearch} onQuickAdd={() => setShowQuickAdd(true)} />
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -202,7 +216,7 @@ export default function BillingPage() {
             disabled={pendingSave || cart.items.length === 0}
             title="Save estimate (Ctrl+S)"
           >
-            <Save size={15} /> Save &amp; PDF
+            <Save size={15} /> Save Estimate
           </button>
         </div>
       </div>
@@ -210,8 +224,22 @@ export default function BillingPage() {
       <div className="billing-shell">
         {/* Left: cart */}
         <div className="billing-left">
+          {/* Print Header (Visible only in print) */}
+          <div className="print-only" style={{ padding: "16px 20px", borderBottom: "2px solid #000", marginBottom: "16px" }}>
+            <h2 style={{ margin: 0, fontSize: 20, textAlign: "center", textTransform: "uppercase" }}>Estimate</h2>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 16 }}>
+              <div>
+                <div style={{ fontSize: 13 }}><strong>Date:</strong> {new Date().toLocaleDateString()}</div>
+                {cart.customer && <div style={{ fontSize: 13, marginTop: 4 }}><strong>Customer:</strong> {cart.customer}</div>}
+              </div>
+              <div style={{ textAlign: "right", fontSize: 13 }}>
+                <div><strong>Est No:</strong> {cart.estNumber || "DRAFT"}</div>
+              </div>
+            </div>
+          </div>
+
           {/* Customer + Notes */}
-          <div style={{ display: "flex", gap: 10, padding: "10px 16px", borderBottom: "1px solid var(--border)", flexShrink: 0, alignItems: "center" }}>
+          <div className="no-print" style={{ display: "flex", gap: 10, padding: "10px 16px", borderBottom: "1px solid var(--border)", flexShrink: 0, alignItems: "center" }}>
             <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8 }}>
               <User size={15} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
               <input
@@ -220,8 +248,17 @@ export default function BillingPage() {
                 style={{ fontSize: 13, height: 32 }}
                 placeholder="Customer name (optional)"
                 value={cart.customer}
-                onChange={(e) => cart.setCustomer(e.target.value)}
+                list="customer-list"
+                onChange={(e) => {
+                  const val = e.target.value;
+                  cart.setCustomer(val);
+                  const match = customers.find(c => c.name.toLowerCase() === val.toLowerCase());
+                  cart.setCustomerId(match ? match.id : null);
+                }}
               />
+              <datalist id="customer-list">
+                {customers.map(c => <option key={c.id} value={c.name} />)}
+              </datalist>
             </div>
             <input
               id="notes-input"
@@ -256,6 +293,18 @@ export default function BillingPage() {
                   <span style={{ fontWeight: 800, fontSize: 16 }}>GRAND TOTAL:</span>
                   <span style={{ fontWeight: 800, fontSize: 16 }}>Rs.{cart.total().toFixed(2)}</span>
                 </div>
+                {cart.amountPaid > 0 && (
+                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+                    <span style={{ fontWeight: 600 }}>Amount Paid:</span>
+                    <span>Rs.{cart.amountPaid.toFixed(2)}</span>
+                  </div>
+                )}
+                {cart.total() - cart.amountPaid > 0 && (
+                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, color: "#d32f2f" }}>
+                    <span style={{ fontWeight: 600 }}>Balance Due:</span>
+                    <span>Rs.{(cart.total() - cart.amountPaid).toFixed(2)}</span>
+                  </div>
+                )}
               </div>
             </div>
             
@@ -293,6 +342,33 @@ export default function BillingPage() {
               <span>TOTAL</span>
               <span style={{ color: "var(--primary)" }}>Rs.{total.toFixed(2)}</span>
             </div>
+            {cart.estimateId && cart.initialPaid > 0 && (
+              <div className="totals-row" style={{ fontSize: 12, opacity: 0.8 }}>
+                <span>Previously Paid</span>
+                <span>Rs.{cart.initialPaid.toFixed(2)}</span>
+              </div>
+            )}
+            <div className="totals-row" style={{ alignItems: "center", marginTop: 8 }}>
+              <span>{cart.estimateId ? "Add Payment (Rs.)" : "Paid (Rs.)"}</span>
+              <NumericInput
+                value={cart.estimateId ? addAmount : cart.amountPaid}
+                onChange={(val) => {
+                  if (cart.estimateId) {
+                    setAddAmount(val);
+                    cart.setAmountPaid(cart.initialPaid + val);
+                  } else {
+                    cart.setAmountPaid(val);
+                  }
+                }}
+                style={{ width: 100 }}
+              />
+            </div>
+            <div className="totals-row" style={{ marginTop: 8, borderTop: "1px solid var(--border)", paddingTop: 8 }}>
+              <span>Balance</span>
+              <span style={{ color: Math.max(0, total - cart.amountPaid) > 0 ? "var(--error)" : "var(--text)" }}>
+                Rs.{Math.max(0, total - cart.amountPaid).toFixed(2)}
+              </span>
+            </div>
 
             <div style={{ marginTop: 20, padding: "12px", background: "var(--accent-dim)", borderRadius: "var(--radius-sm)", fontSize: 11, color: "var(--text-muted)", border: "1px solid var(--accent-dim)" }}>
               <strong style={{ color: "var(--accent)" }}>ESTIMATE ONLY</strong><br />
@@ -309,7 +385,7 @@ export default function BillingPage() {
               onClick={handleSave}
               disabled={cart.items.length === 0 || pendingSave}
             >
-              <Save size={18} /> Save &amp; PDF
+              <Save size={18} /> Save Estimate
             </button>
             <button
               className="btn btn-accent"

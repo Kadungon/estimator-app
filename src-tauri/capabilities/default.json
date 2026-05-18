@@ -12,7 +12,13 @@
     },
     "dialog:default",
     "dialog:allow-save",
+    "dialog:allow-open",
     "fs:default",
+    {
+      "identifier": "fs:allow-read-file",
+      "allow": [{ "path": "**" }]
+    },
+    "fs:allow-exists",
     "shell:default"
   ]
 }

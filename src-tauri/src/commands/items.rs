@@ -4,7 +4,7 @@ use tauri::command;
 
 fn _get_item(conn: &rusqlite::Connection, id: i64) -> Result<Item, String> {
     let mut stmt = conn.prepare("
-        SELECT i.id, i.company_id, i.sku, i.name, i.unit, i.description, i.category_id, c.name as category_name, i.created_at
+        SELECT i.id, i.company_id, i.sku, i.name, i.unit, i.description, i.category_id, c.name as category_name, i.stock, i.created_at
         FROM items i
         LEFT JOIN categories c ON i.category_id = c.id
         WHERE i.id = ?1
@@ -20,7 +20,8 @@ fn _get_item(conn: &rusqlite::Connection, id: i64) -> Result<Item, String> {
             description: row.get(5)?,
             category_id: row.get(6)?,
             category_name: row.get(7)?,
-            created_at: row.get(8)?,
+            stock: row.get(8).unwrap_or(0.0),
+            created_at: row.get(9)?,
             prices: Vec::new(),
         })
     }).map_err(|e| e.to_string())?;
@@ -88,8 +89,8 @@ pub fn create_item(payload: Item) -> Result<Item, String> {
     let tx = conn.transaction().map_err(|e| e.to_string())?;
 
     tx.execute(
-        "INSERT INTO items (company_id, sku, name, unit, description, category_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-        params![payload.company_id, payload.sku, payload.name, payload.unit, payload.description, payload.category_id],
+        "INSERT INTO items (company_id, sku, name, unit, description, category_id, stock) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+        params![payload.company_id, payload.sku, payload.name, payload.unit, payload.description, payload.category_id, payload.stock],
     ).map_err(|e| e.to_string())?;
 
     let item_id = tx.last_insert_rowid();
@@ -111,8 +112,8 @@ pub fn update_item(id: i64, payload: Item) -> Result<Item, String> {
     let tx = conn.transaction().map_err(|e| e.to_string())?;
 
     tx.execute(
-        "UPDATE items SET sku = ?1, name = ?2, unit = ?3, description = ?4, category_id = ?5 WHERE id = ?6",
-        params![payload.sku, payload.name, payload.unit, payload.description, payload.category_id, id],
+        "UPDATE items SET sku = ?1, name = ?2, unit = ?3, description = ?4, category_id = ?5, stock = ?6 WHERE id = ?7",
+        params![payload.sku, payload.name, payload.unit, payload.description, payload.category_id, payload.stock, id],
     ).map_err(|e| e.to_string())?;
 
     // Simple strategy: delete all prices and re-insert
@@ -137,3 +138,28 @@ pub fn delete_item(id: i64) -> Result<(), String> {
 }
 
 
+
+#[command]
+pub fn bulk_create_items(company_id: i64, items: Vec<Item>) -> Result<(), String> {
+    let mut conn = db::get().lock().map_err(|e| e.to_string())?;
+    let tx = conn.transaction().map_err(|e| e.to_string())?;
+
+    for item in items {
+        tx.execute(
+            "INSERT INTO items (company_id, sku, name, unit, description, category_id, stock) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![company_id, item.sku, item.name, item.unit, item.description, item.category_id, item.stock],
+        ).map_err(|e| e.to_string())?;
+
+        let item_id = tx.last_insert_rowid();
+
+        for p in item.prices {
+            tx.execute(
+                "INSERT INTO item_prices (item_id, label, price) VALUES (?1, ?2, ?3)",
+                params![item_id, p.label, p.price],
+            ).map_err(|e| e.to_string())?;
+        }
+    }
+
+    tx.commit().map_err(|e| e.to_string())?;
+    Ok(())
+}

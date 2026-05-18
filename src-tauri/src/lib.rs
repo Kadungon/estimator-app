@@ -30,6 +30,7 @@ pub fn run() {
             commands::items::create_item,
             commands::items::update_item,
             commands::items::delete_item,
+            commands::items::bulk_create_items,
             // Estimates
             commands::estimates::get_estimates,
             commands::estimates::get_estimate,
@@ -57,6 +58,14 @@ pub fn run() {
             commands::metrics::get_dashboard_kpis,
             commands::metrics::get_revenue_trends,
             commands::metrics::get_top_items,
+            // Customers
+            commands::customers::get_customers,
+            commands::customers::create_customer,
+            commands::customers::delete_customer,
+            // Units
+            commands::units::get_units,
+            commands::units::create_unit,
+            commands::units::delete_unit,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

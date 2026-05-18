@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
-import { Search, FileText, Trash2, Calendar, User, Edit, Filter } from "lucide-react";
-import { getEstimates, deleteEstimate, getUniqueCustomers, getEstimate } from "../../lib/tauri";
+import { save as saveDialog } from "@tauri-apps/plugin-dialog";
+import { openPath } from "@tauri-apps/plugin-opener";
+import { Search, FileText, Trash2, Calendar, User, Edit, Filter, Download } from "lucide-react";
+import { getEstimates, deleteEstimate, getUniqueCustomers, getEstimate, generatePdf, getSettings } from "../../lib/tauri";
 import { EstimateSummary } from "../../types";
 import { useAuthStore } from "../../store/authStore";
 import { useCartStore } from "../../store/cartStore";
@@ -61,9 +63,30 @@ export default function EstimatesPage() {
     }
   };
 
+  const handleSavePdf = async (est: EstimateSummary) => {
+    try {
+      const settings = await getSettings();
+      const defaultDir = `${window.navigator.userAgent.includes("Linux") ? "/home" : "~"}/Documents/Estimates`;
+      const savePath = await saveDialog({
+        title: "Save Estimate PDF",
+        defaultPath: `${defaultDir}/${est.est_number}.pdf`,
+        filters: [{ name: "PDF", extensions: ["pdf"] }],
+      });
+
+      if (savePath) {
+        toast.loading("Generating PDF...", { id: "pdf" });
+        const pdfPath = await generatePdf(est.id, savePath, settings?.pdf_layout || "A5");
+        toast.success("PDF saved!", { id: "pdf" });
+        await openPath(pdfPath);
+      }
+    } catch (e) {
+      toast.error(String(e), { id: "pdf" });
+    }
+  };
+
   const formatDate = (dateStr: string) => {
     try {
-      return new Date(dateStr).toLocaleDateString("en-IN", {
+      return new Date(dateStr.replace(" ", "T") + "Z").toLocaleDateString("en-IN", {
         day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
       });
     } catch { return dateStr; }
@@ -137,7 +160,10 @@ export default function EstimatesPage() {
 
                 <div style={{ display: "flex", gap: 8 }}>
                   <button className="btn btn-ghost btn-sm" onClick={() => handleEdit(est.id)} title="View & Edit">
-                    <Edit size={15} /> View / Edit
+                    <Edit size={15} /> Edit
+                  </button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => handleSavePdf(est)} title="Export PDF">
+                    <Download size={15} /> PDF
                   </button>
                   {useAuthStore.getState().isAdmin() && (
                     <button className="btn btn-icon btn-danger btn-sm" onClick={() => handleDelete(est.id)} title="Delete history">

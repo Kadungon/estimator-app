@@ -1,5 +1,5 @@
 use crate::db::get;
-use serde::{Deserialize, Serialize};
+use serde::{Serialize};
 
 #[derive(Serialize)]
 pub struct DashboardKPIs {

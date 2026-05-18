@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
-import { Plus, Search, Edit2, Trash2, Tag, X } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, Tag, X, FileSpreadsheet } from "lucide-react";
 import { getItems, deleteItem, getCategories, deleteCategory } from "../../lib/tauri";
 import { Item, Category } from "../../types";
 import { useAuthStore } from "../../store/authStore";
 import ItemModal from "./ItemModal";
 import CategoryModal from "./CategoryModal";
+import ImportModal from "./ImportModal";
 import ConfirmModal from "../common/ConfirmModal";
 
 export default function ItemsPage() {
@@ -17,6 +18,7 @@ export default function ItemsPage() {
   const [showModal, setShowModal] = useState<{ open: boolean; item?: Item }>({ open: false });
   const [showCatList, setShowCatList] = useState(false);
   const [showAddCat, setShowAddCat] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<{ id: number; type: 'item' | 'category' } | null>(null);
 
   const companyId = useAuthStore(state => state.company?.id);
@@ -60,6 +62,56 @@ export default function ItemsPage() {
     }
   };
 
+  const handleExport = async () => {
+    if (items.length === 0) return toast.error("No items to export");
+    
+    try {
+      const { save } = await import("@tauri-apps/plugin-dialog");
+      const { writeFile } = await import("@tauri-apps/plugin-fs");
+      const XLSX = await import("xlsx");
+
+      const path = await save({
+        defaultPath: "inventory_export.xlsx",
+        filters: [{ name: "Excel", extensions: ["xlsx"] }]
+      });
+
+      if (!path) return;
+
+      const data = items.map(it => ({
+        "Name": it.name,
+        "SKU": it.sku || "",
+        "Unit": it.unit || "Pcs",
+        "Stock": it.stock || 0,
+        "Retail 1": it.prices[0]?.price || 0,
+        "Retail 2": it.prices[1]?.price || 0,
+        "Category": it.category_name || ""
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(data);
+      
+      // Set column widths
+      ws["!cols"] = [
+        { wch: 35 }, // Name
+        { wch: 15 }, // SKU
+        { wch: 10 }, // Unit
+        { wch: 10 }, // Stock
+        { wch: 12 }, // Retail 1
+        { wch: 12 }, // Retail 2
+        { wch: 20 }, // Category
+      ];
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Inventory");
+
+      const buf = XLSX.write(wb, { type: "array", bookType: "xlsx" });
+      await writeFile(path, new Uint8Array(buf));
+      
+      toast.success("Inventory exported successfully");
+    } catch (e) {
+      toast.error("Export failed: " + String(e));
+    }
+  };
+
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -89,6 +141,12 @@ export default function ItemsPage() {
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           {isAdmin && (
             <>
+              <button className="btn btn-ghost" onClick={handleExport}>
+                <FileSpreadsheet size={16} /> Export
+              </button>
+              <button className="btn btn-ghost" onClick={() => setShowImport(true)}>
+                <FileSpreadsheet size={16} /> Import
+              </button>
               <button className="btn btn-ghost" onClick={() => setShowCatList(true)}>
                 <Tag size={16} /> Manage Categories
               </button>
@@ -116,7 +174,9 @@ export default function ItemsPage() {
               <tr>
                 <th>Item Details</th>
                 <th>Category</th>
-                <th>Price Points (₹)</th>
+                <th style={{ width: 100 }}>Unit</th>
+                <th style={{ width: 100 }}>Stock</th>
+                <th style={{ width: 220 }}>Prices</th>
                 <th style={{ width: 100 }}>Actions</th>
               </tr>
             </thead>
@@ -135,6 +195,14 @@ export default function ItemsPage() {
                     ) : (
                       <span style={{ color: "var(--text-muted)", fontSize: 12 }}>—</span>
                     )}
+                  </td>
+                  <td>
+                    <span style={{ fontSize: 13 }}>{item.unit || "Pcs"}</span>
+                  </td>
+                  <td>
+                    <span style={{ fontWeight: 600, fontSize: 13, color: item.stock <= 5 ? "var(--error)" : "inherit" }}>
+                      {item.stock}
+                    </span>
                   </td>
                   <td>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -206,6 +274,10 @@ export default function ItemsPage() {
 
       {showAddCat && (
         <CategoryModal onSave={() => { setShowAddCat(false); loadData(); }} onClose={() => setShowAddCat(false)} />
+      )}
+
+      {showImport && (
+        <ImportModal onImport={loadData} onClose={() => setShowImport(false)} />
       )}
 
       {confirmDelete && (

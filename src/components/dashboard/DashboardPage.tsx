@@ -12,7 +12,7 @@ import {
   BarChart,
   Bar,
 } from "recharts";
-import { DollarSign, FileText, ShoppingBag, TrendingUp } from "lucide-react";
+import { IndianRupee, FileText, ShoppingBag, TrendingUp } from "lucide-react";
 
 interface DashboardKPIs {
   total_revenue: number;
@@ -58,7 +58,7 @@ export default function DashboardPage() {
     {
       title: "Total Revenue",
       value: `₹${(kpis?.total_revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
-      icon: <DollarSign size={24} color="var(--primary)" />,
+      icon: <IndianRupee size={24} color="var(--primary)" />,
     },
     {
       title: "Total Estimates",

@@ -28,6 +28,28 @@ pub struct Category {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Unit {
+    pub id: i64,
+    #[serde(default)]
+    pub company_id: i64,
+    pub name: String,
+    pub created_at: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Customer {
+    pub id: i64,
+    #[serde(default)]
+    pub company_id: i64,
+    pub name: String,
+    pub phone: Option<String>,
+    pub address: Option<String>,
+    pub created_at: String,
+    #[serde(default)]
+    pub balance: f64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ItemPrice {
     #[serde(default)]
     pub id: i64,
@@ -49,6 +71,8 @@ pub struct Item {
     pub description: Option<String>,
     pub category_id: Option<i64>,
     pub category_name: Option<String>,
+    #[serde(default)]
+    pub stock: f64,
     pub prices: Vec<ItemPrice>,
     #[serde(default)]
     pub created_at: String,
@@ -78,10 +102,13 @@ pub struct Estimate {
     pub company_id: i64,
     pub est_number: String,
     pub customer: Option<String>,
+    pub customer_id: Option<i64>,
     pub notes: Option<String>,
     pub subtotal: f64,
     pub discount: f64,
     pub total: f64,
+    #[serde(default)]
+    pub amount_paid: f64,
     pub items: Vec<EstimateItem>,
     pub created_at: String,
     pub pdf_path: Option<String>,
@@ -93,6 +120,8 @@ pub struct EstimateSummary {
     pub est_number: String,
     pub customer: Option<String>,
     pub total: f64,
+    #[serde(default)]
+    pub amount_paid: f64,
     pub created_at: String,
 }
 

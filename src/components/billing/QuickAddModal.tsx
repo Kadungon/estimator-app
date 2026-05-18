@@ -1,5 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X } from "lucide-react";
+import { getUnits } from "../../lib/tauri";
+import { useAuthStore } from "../../store/authStore";
+import { Unit } from "../../types";
 
 interface Props {
   onAdd: (name: string, price: number, unit: string) => void;
@@ -10,6 +13,14 @@ export default function QuickAddModal({ onAdd, onClose }: Props) {
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [unit, setUnit] = useState("Pcs");
+  const [units, setUnits] = useState<Unit[]>([]);
+  const companyId = useAuthStore(state => state.company?.id);
+
+  useEffect(() => {
+    if (companyId) {
+      getUnits(companyId).then(setUnits).catch(console.error);
+    }
+  }, [companyId]);
 
   const submit = () => {
     if (!name.trim()) return;
@@ -63,12 +74,14 @@ export default function QuickAddModal({ onAdd, onClose }: Props) {
             </div>
             <div className="input-group">
               <label className="input-label">Unit</label>
-              <input
-                className="input"
-                placeholder="Pcs"
+              <select
+                className="select"
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
-              />
+              >
+                {units.map(u => <option key={u.id} value={u.name}>{u.name}</option>)}
+                {!units.find(u => u.name === unit) && <option value={unit}>{unit}</option>}
+              </select>
             </div>
           </div>
 

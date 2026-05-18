@@ -5,6 +5,8 @@ import type {
   Estimate,
   EstimateSummary,
   Settings,
+  Unit,
+  Customer,
 } from "../types";
 
 /**
@@ -48,10 +50,28 @@ export const createItem = (payload: unknown) =>
 export const updateItem = (id: number, payload: unknown) =>
   safeInvoke<Item>("update_item", { id, payload });
 export const deleteItem = (id: number) => safeInvoke<void>("delete_item", { id });
+export const bulkCreateItems = (companyId: number, items: any[]) =>
+  safeInvoke<void>("bulk_create_items", { companyId, items });
+
+// Units
+export const getUnits = (companyId: number) => 
+  safeInvoke<Unit[]>("get_units", { companyId });
+export const createUnit = (companyId: number, name: string) =>
+  safeInvoke<Unit>("create_unit", { input: { company_id: companyId, name } });
+export const deleteUnit = (id: number) =>
+  safeInvoke<void>("delete_unit", { id });
+
+// Customers
+export const getCustomers = (companyId: number) => 
+  safeInvoke<Customer[]>("get_customers", { companyId });
+export const createCustomer = (companyId: number, name: string, phone?: string, address?: string) =>
+  safeInvoke<Customer>("create_customer", { input: { company_id: companyId, name, phone: phone || null, address: address || null } });
+export const deleteCustomer = (id: number) =>
+  safeInvoke<void>("delete_customer", { id });
 
 // Estimates
-export const getEstimates = (companyId: number, search?: string, customer?: string) =>
-  safeInvoke<EstimateSummary[]>("get_estimates", { companyId, search: search ?? null, customer: customer ?? null });
+export const getEstimates = (companyId: number, search?: string, customer?: string, customerId?: number) =>
+  safeInvoke<EstimateSummary[]>("get_estimates", { companyId, search: search ?? null, customer: customer ?? null, customerId: customerId ?? null });
 export const getUniqueCustomers = (companyId: number) =>
   safeInvoke<string[]>("get_unique_customers", { companyId });
 export const getEstimate = (id: number) =>

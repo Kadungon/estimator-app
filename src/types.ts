@@ -28,6 +28,23 @@ export interface ItemPrice {
   price: number;
 }
 
+export interface Unit {
+  id: number;
+  company_id: number;
+  name: string;
+  created_at: string;
+}
+
+export interface Customer {
+  id: number;
+  company_id: number;
+  name: string;
+  phone: string | null;
+  address: string | null;
+  created_at: string;
+  balance: number;
+}
+
 export interface Item {
   id: number;
   company_id: number;
@@ -37,6 +54,7 @@ export interface Item {
   description: string | null;
   category_id: number | null;
   category_name: string | null;
+  stock: number;
   created_at: string;
   prices: ItemPrice[];
 }
@@ -58,10 +76,12 @@ export interface Estimate {
   company_id: number;
   est_number: string;
   customer: string | null;
+  customer_id: number | null;
   notes: string | null;
   subtotal: number;
   discount: number;
   total: number;
+  amount_paid: number;
   pdf_path: string | null;
   created_at: string;
   items: EstimateItem[];
@@ -72,6 +92,7 @@ export interface EstimateSummary {
   est_number: string;
   customer: string | null;
   total: number;
+  amount_paid: number;
   created_at: string;
 }
 

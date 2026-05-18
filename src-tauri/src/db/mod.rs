@@ -72,8 +72,8 @@ fn run_migrations(conn: &Connection) -> Result<()> {
             ('shop_address',    ''),
             ('shop_phone',      ''),
             ('shop_email',      ''),
-            ('pdf_layout',      'A4'),
-            ('theme',           'dark'),
+            ('pdf_layout',      'A5'),
+            ('theme',           'light'),
             ('confirm_save',    'true'),
             ('estimates_dir',   '');
 
@@ -113,6 +113,24 @@ fn run_migrations(conn: &Connection) -> Result<()> {
             UNIQUE(company_id, name)
         );
 
+        CREATE TABLE IF NOT EXISTS units (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            company_id  INTEGER NOT NULL DEFAULT 1 REFERENCES companies(id) ON DELETE CASCADE,
+            name        TEXT NOT NULL,
+            created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+            UNIQUE(company_id, name)
+        );
+
+        CREATE TABLE IF NOT EXISTS customers (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            company_id  INTEGER NOT NULL DEFAULT 1 REFERENCES companies(id) ON DELETE CASCADE,
+            name        TEXT NOT NULL,
+            phone       TEXT,
+            address     TEXT,
+            created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+            UNIQUE(company_id, name)
+        );
+
         CREATE TABLE IF NOT EXISTS items (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             company_id  INTEGER NOT NULL DEFAULT 1 REFERENCES companies(id) ON DELETE CASCADE,
@@ -121,6 +139,7 @@ fn run_migrations(conn: &Connection) -> Result<()> {
             unit        TEXT DEFAULT 'Pcs',
             description TEXT,
             category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
+            stock       REAL NOT NULL DEFAULT 0,
             created_at  TEXT NOT NULL DEFAULT (datetime('now')),
             UNIQUE(company_id, sku)
         );
@@ -138,10 +157,12 @@ fn run_migrations(conn: &Connection) -> Result<()> {
             company_id  INTEGER NOT NULL DEFAULT 1 REFERENCES companies(id) ON DELETE CASCADE,
             est_number  TEXT NOT NULL UNIQUE,
             customer    TEXT,
+            customer_id INTEGER REFERENCES customers(id) ON DELETE SET NULL,
             notes       TEXT,
             subtotal    REAL NOT NULL DEFAULT 0,
             discount    REAL NOT NULL DEFAULT 0,
             total       REAL NOT NULL DEFAULT 0,
+            amount_paid REAL NOT NULL DEFAULT 0,
             pdf_path    TEXT,
             created_at  TEXT NOT NULL DEFAULT (datetime('now'))
         );
@@ -168,9 +189,18 @@ fn run_migrations(conn: &Connection) -> Result<()> {
     let _ = conn.execute("ALTER TABLE items ADD COLUMN company_id INTEGER NOT NULL DEFAULT 1", []);
     let _ = conn.execute("ALTER TABLE estimate_items ADD COLUMN unit TEXT", []);
     let _ = conn.execute("ALTER TABLE estimates ADD COLUMN company_id INTEGER NOT NULL DEFAULT 1", []);
+    let _ = conn.execute("ALTER TABLE estimates ADD COLUMN customer_id INTEGER REFERENCES customers(id) ON DELETE SET NULL", []);
+    let _ = conn.execute("ALTER TABLE estimates ADD COLUMN amount_paid REAL NOT NULL DEFAULT 0", []);
     let _ = conn.execute("ALTER TABLE categories ADD COLUMN company_id INTEGER NOT NULL DEFAULT 1", []);
     let _ = conn.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'", []);
+    let _ = conn.execute("ALTER TABLE items ADD COLUMN stock REAL NOT NULL DEFAULT 0", []);
     let _ = conn.execute("UPDATE users SET role = 'admin' WHERE id = 1", []);
+    
+    // Default units
+    let _ = conn.execute("INSERT OR IGNORE INTO units (company_id, name) VALUES (1, 'Pcs')", []);
+    let _ = conn.execute("INSERT OR IGNORE INTO units (company_id, name) VALUES (1, 'Kgs')", []);
+    let _ = conn.execute("INSERT OR IGNORE INTO units (company_id, name) VALUES (1, 'Ltrs')", []);
+    
     Ok(())
 }
 

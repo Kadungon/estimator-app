@@ -182,24 +182,36 @@ pub fn generate_pdf(estimate_id: i64, save_path: String, page_size: String) -> R
     // ── TOTALS BOX ────────────────────────────────────────────────────────────
     let totals_w = 80.0;
     let totals_x = page_w - 12.0 - totals_w;
-    let totals_box_y = cursor_y - 35.0;
-    fill_rect(&current_layer, totals_x, totals_box_y, totals_w, 32.0, 0.95_f32, 0.96_f32, 0.98_f32);
+    let totals_box_y = cursor_y - 48.0; // Increased height for more rows
+    fill_rect(&current_layer, totals_x, totals_box_y, totals_w, 45.0, 0.95_f32, 0.96_f32, 0.98_f32);
 
     let label_x = totals_x + 4.0;
     let value_x = totals_x + totals_w - 32.0;
 
-    let sub_y = totals_box_y + 24.0;
-    write_text(&current_layer, "SUBTOTAL:", label_x, sub_y, 9.0, false);
-    write_text(&current_layer, &format!("Rs. {:.2}", estimate.subtotal), value_x, sub_y, 9.0, false);
+    let mut current_y = totals_box_y + 37.0;
+    write_text(&current_layer, "SUBTOTAL:", label_x, current_y, 9.0, false);
+    write_text(&current_layer, &format!("Rs. {:.2}", estimate.subtotal), value_x, current_y, 9.0, false);
 
-    let mut last_y = sub_y;
     if estimate.discount > 0.0 {
-        last_y -= 7.0;
-        write_text(&current_layer, "DISCOUNT:", label_x, last_y, 9.0, false);
-        write_text(&current_layer, &format!("- Rs. {:.2}", estimate.discount), value_x, last_y, 9.0, false);
+        current_y -= 6.0;
+        write_text(&current_layer, "DISCOUNT:", label_x, current_y, 9.0, false);
+        write_text(&current_layer, &format!("- Rs. {:.2}", estimate.discount), value_x, current_y, 9.0, false);
     }
 
-    // Grand total row
+    current_y -= 6.0;
+    write_text(&current_layer, "TOTAL AMT:", label_x, current_y, 9.0, true);
+    write_text(&current_layer, &format!("Rs. {:.2}", estimate.total), value_x, current_y, 9.0, true);
+
+    current_y -= 6.0;
+    write_text(&current_layer, "PAID AMT:", label_x, current_y, 9.0, false);
+    write_text(&current_layer, &format!("Rs. {:.2}", estimate.amount_paid), value_x, current_y, 9.0, false);
+
+    let balance = estimate.total - estimate.amount_paid;
+    current_y -= 6.0;
+    write_text(&current_layer, "BALANCE:", label_x, current_y, 9.0, true);
+    write_text(&current_layer, &format!("Rs. {:.2}", balance), value_x, current_y, 9.0, true);
+
+    // Grand total row (Bottom blue bar)
     let grand_y = totals_box_y + 8.0;
     fill_rect(&current_layer, totals_x, grand_y - 2.0, totals_w, 9.0, 0.13_f32, 0.18_f32, 0.35_f32);
     current_layer.set_fill_color(Color::Rgb(Rgb::new(1.0, 1.0, 1.0, None)));
