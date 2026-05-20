@@ -21,10 +21,18 @@ export default function SettingsPage({ onThemeChange }: Props) {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showItemDetailsSetting, setShowItemDetailsSetting] = useState<boolean>(() => {
+    const saved = localStorage.getItem("estima_show_item_details");
+    return saved === "true";
+  });
 
   useEffect(() => {
     getSettings().then(s => {
-      setSettings(s as unknown as Settings);
+      const typedSettings = s as unknown as Settings;
+      if (typedSettings.show_balance_on_print === undefined) {
+        typedSettings.show_balance_on_print = "false";
+      }
+      setSettings(typedSettings);
       setLoading(false);
     });
   }, []);
@@ -182,6 +190,35 @@ export default function SettingsPage({ onThemeChange }: Props) {
                         style={{ width: 18, height: 18, accentColor: "var(--primary)" }}
                       />
                       <span style={{ fontSize: 13, fontWeight: 600 }}>Show confirmation before saving</span>
+                    </label>
+                  </div>
+
+                  <div className="input-group">
+                    <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+                      <input 
+                        type="checkbox" 
+                        checked={settings.show_balance_on_print === "true"} 
+                        onChange={e => handleUpdate("show_balance_on_print", e.target.checked ? "true" : "false")}
+                        style={{ width: 18, height: 18, accentColor: "var(--primary)" }}
+                      />
+                      <span style={{ fontSize: 13, fontWeight: 600 }}>Show Balance Due on direct print and PDF copies</span>
+                    </label>
+                  </div>
+
+                  <div className="input-group">
+                    <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+                      <input 
+                        type="checkbox" 
+                        checked={showItemDetailsSetting} 
+                        onChange={e => {
+                          const val = e.target.checked;
+                          setShowItemDetailsSetting(val);
+                          localStorage.setItem("estima_show_item_details", String(val));
+                          toast.success(val ? "Search details enabled" : "Search details disabled (Compact mode active)");
+                        }}
+                        style={{ width: 18, height: 18, accentColor: "var(--primary)" }}
+                      />
+                      <span style={{ fontSize: 13, fontWeight: 600 }}>Show more details (SKU, Stock, Prices) in stock items search sidebar</span>
                     </label>
                   </div>
                 </div>

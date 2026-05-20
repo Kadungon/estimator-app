@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 
 interface Props {
@@ -7,6 +8,44 @@ interface Props {
 }
 
 export default function PriceLabelModal({ prices, onSelect, onClose }: Props) {
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  // Total options is prices.length + 1 (for Custom Price)
+  const totalOptions = prices.length + 1;
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev + 1) % totalOptions);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev - 1 + totalOptions) % totalOptions);
+      } else if (e.key === "Tab") {
+        e.preventDefault();
+        if (e.shiftKey) {
+          setSelectedIndex((prev) => (prev - 1 + totalOptions) % totalOptions);
+        } else {
+          setSelectedIndex((prev) => (prev + 1) % totalOptions);
+        }
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        if (selectedIndex < prices.length) {
+          const p = prices[selectedIndex];
+          onSelect(p.label, p.price);
+        } else {
+          onSelect("Custom", 0);
+        }
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedIndex, prices, totalOptions, onSelect, onClose]);
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-box" style={{ maxWidth: 360 }} onClick={(e) => e.stopPropagation()}>
@@ -16,22 +55,41 @@ export default function PriceLabelModal({ prices, onSelect, onClose }: Props) {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {prices.map((p) => (
-            <button
-              key={p.label}
-              className="btn btn-ghost"
-              style={{ justifyContent: "space-between", padding: "12px 16px" }}
-              onClick={() => onSelect(p.label, p.price)}
-            >
-              <span>{p.label}</span>
-              <span style={{ fontWeight: 700, color: "var(--primary)" }}>₹{p.price.toFixed(2)}</span>
-            </button>
-          ))}
+          {prices.map((p, idx) => {
+            const isSelected = idx === selectedIndex;
+            return (
+              <button
+                key={p.label}
+                className="btn btn-ghost"
+                style={{
+                  justifyContent: "space-between",
+                  padding: "12px 16px",
+                  background: isSelected ? "var(--primary-dim)" : undefined,
+                  color: isSelected ? "var(--primary)" : undefined,
+                  borderColor: isSelected ? "var(--primary)" : undefined,
+                  boxShadow: isSelected ? "0 0 0 2px var(--primary-dim)" : undefined,
+                }}
+                onClick={() => onSelect(p.label, p.price)}
+                onMouseEnter={() => setSelectedIndex(idx)}
+              >
+                <span>{p.label}</span>
+                <span style={{ fontWeight: 700, color: "var(--primary)" }}>₹{p.price.toFixed(2)}</span>
+              </button>
+            );
+          })}
           
           <button 
             className="btn btn-ghost" 
-            style={{ marginTop: 8, color: "var(--text-muted)", fontSize: 12 }}
+            style={{
+              marginTop: 8,
+              color: selectedIndex === prices.length ? "var(--primary)" : "var(--text-muted)",
+              fontSize: 12,
+              background: selectedIndex === prices.length ? "var(--primary-dim)" : undefined,
+              borderColor: selectedIndex === prices.length ? "var(--primary)" : undefined,
+              boxShadow: selectedIndex === prices.length ? "0 0 0 2px var(--primary-dim)" : undefined,
+            }}
             onClick={() => onSelect("Custom", 0)}
+            onMouseEnter={() => setSelectedIndex(prices.length)}
           >
             Custom Price
           </button>

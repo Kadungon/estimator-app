@@ -65,7 +65,7 @@ body {
   font-family: var(--font);
   background: var(--bg);
   color: var(--text);
-  font-size: 14px;
+  font-size: 12.5px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
@@ -79,7 +79,7 @@ body {
 /* ── Layout shell ────────────────────────────────────────────── */
 .app-shell {
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: 170px 1fr;
   grid-template-rows: 48px 1fr;
   height: 100vh;
   overflow: hidden;
@@ -134,11 +134,11 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 9px 12px;
+  padding: 8px 12px;
   border-radius: var(--radius-sm);
   margin: 1px 6px;
   cursor: pointer;
-  font-size: 13.5px;
+  font-size: 12.5px;
   font-weight: 500;
   color: var(--text-muted);
   transition: background var(--trans), color var(--trans);
@@ -162,10 +162,10 @@ body {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  height: 38px;
-  padding: 0 16px;
+  height: 34px;
+  padding: 0 14px;
   border-radius: var(--radius-sm);
-  font-size: 13.5px;
+  font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
   border: none;
@@ -222,14 +222,14 @@ body {
 /* ── Input / Select ──────────────────────────────────────────── */
 .input, .select {
   width: 100%;
-  height: 38px; /* Fixed height for alignment */
+  height: 34px; /* Fixed height for alignment */
   padding: 0 12px;
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text);
   font-family: var(--font);
-  font-size: 14px;
+  font-size: 12.5px;
   outline: none;
   transition: border-color var(--trans), box-shadow var(--trans);
   display: flex;
@@ -360,12 +360,12 @@ input[type="number"] {
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13.5px;
+  font-size: 12px;
 }
 .data-table th {
   text-align: left;
-  padding: 9px 12px;
-  font-size: 11px;
+  padding: 6px 8px;
+  font-size: 10.5px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -374,7 +374,7 @@ input[type="number"] {
   white-space: nowrap;
 }
 .data-table td {
-  padding: 10px 12px;
+  padding: 6px 8px;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
 }
@@ -413,13 +413,13 @@ input[type="number"] {
 }
 .search-result-item:hover,
 .search-result-item.selected { background: var(--surface-2); }
-.search-result-name { font-weight: 600; font-size: 13.5px; }
-.search-result-meta { font-size: 11.5px; color: var(--text-muted); }
+.search-result-name { font-weight: 600; font-size: 12.5px; }
+.search-result-meta { font-size: 11px; color: var(--text-muted); }
 
 /* ── Billing panel ───────────────────────────────────────────── */
 .billing-shell {
   display: grid;
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: 1fr 380px;
   height: 100%;
   overflow: hidden;
 }
@@ -451,7 +451,7 @@ input[type="number"] {
   outline: none;
   color: var(--text);
   font-family: var(--font);
-  font-size: 13.5px;
+  font-size: 12px;
   text-align: right;
   padding: 2px 4px;
   border-radius: 4px;
@@ -462,24 +462,24 @@ input[type="number"] {
 }
 
 .totals-section {
-  padding: 16px 20px;
+  padding: 10px 14px;
   border-top: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 5px;
 }
 
 .totals-row {
   display: flex;
   justify-content: space-between;
-  font-size: 13.5px;
+  font-size: 12px;
   color: var(--text-muted);
 }
 .totals-row.grand {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 800;
   color: var(--text);
-  padding-top: 8px;
+  padding-top: 6px;
   border-top: 1px solid var(--border);
 }
 
@@ -793,11 +793,55 @@ kbd {
     background: #f0f0f0 !important;
     color: #000 !important;
     border-bottom: 2px solid #000 !important;
+    padding: 3px 5px !important;
   }
 
   .data-table td {
     border-bottom: 1px solid #eee !important;
-    padding: 4px 6px !important;
+    padding: 3px 5px !important;
+  }
+
+  /* Explicit column widths for paper printing */
+  .data-table th:nth-child(1),
+  .data-table td:nth-child(1) {
+    width: 5% !important;
+    text-align: left !important;
+  }
+  .data-table th:nth-child(2),
+  .data-table td:nth-child(2) {
+    width: 60% !important;
+    text-align: left !important;
+  }
+  .data-table th:nth-child(3),
+  .data-table td:nth-child(3) {
+    display: none !important;
+  }
+  .data-table th:nth-child(4),
+  .data-table td:nth-child(4) {
+    width: 15% !important;
+    text-align: right !important;
+  }
+  .data-table th:nth-child(5),
+  .data-table td:nth-child(5) {
+    width: 10% !important;
+    text-align: right !important;
+  }
+  .data-table th:nth-child(6),
+  .data-table td:nth-child(6) {
+    width: 10% !important;
+    text-align: right !important;
+  }
+
+  .data-table td div {
+    font-size: 8pt !important;
+    line-height: 1.1 !important;
+  }
+
+  .item-name-cell {
+    font-weight: 700 !important;
+    font-size: 9.5pt !important;
+    white-space: normal !important;
+    word-break: normal !important;
   }
 
   /* Hide input boxes in print, show just text */

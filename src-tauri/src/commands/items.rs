@@ -53,7 +53,8 @@ pub fn get_items(
     limit: Option<i64>,
 ) -> Result<Vec<Item>, String> {
     let conn = db::get().lock().map_err(|e| e.to_string())?;
-    let pattern = format!("%{}%", pattern.to_lowercase());
+    let clean_pattern = pattern.trim().to_lowercase();
+    let like_pattern = format!("%{}%", clean_pattern);
 
     let mut sql = "
         SELECT i.id
@@ -61,7 +62,7 @@ pub fn get_items(
         WHERE i.company_id = ?1 AND (LOWER(i.name) LIKE ?2 OR LOWER(i.sku) LIKE ?2)
     ".to_string();
 
-    let mut params: Vec<rusqlite::types::Value> = vec![company_id.into(), pattern.into()];
+    let mut params: Vec<rusqlite::types::Value> = vec![company_id.into(), like_pattern.into()];
 
     if let Some(cat_id) = category_id {
         sql.push_str(" AND i.category_id = ?3");
@@ -85,6 +86,54 @@ pub fn get_items(
     for id in ids {
         items.push(_get_item(&conn, id)?);
     }
+
+    // Sort items in memory if search query is not empty to prioritize exact/starts-with matches
+    if !clean_pattern.is_empty() {
+        items.sort_by(|a, b| {
+            let a_name = a.name.to_lowercase();
+            let a_sku = a.sku.as_deref().unwrap_or("").to_lowercase();
+            let b_name = b.name.to_lowercase();
+            let b_sku = b.sku.as_deref().unwrap_or("").to_lowercase();
+
+            // 1. Exact SKU match
+            let a_exact_sku = a_sku == clean_pattern;
+            let b_exact_sku = b_sku == clean_pattern;
+            if a_exact_sku != b_exact_sku {
+                return b_exact_sku.cmp(&a_exact_sku);
+            }
+
+            // 2. Exact Name match
+            let a_exact_name = a_name == clean_pattern;
+            let b_exact_name = b_name == clean_pattern;
+            if a_exact_name != b_exact_name {
+                return b_exact_name.cmp(&a_exact_name);
+            }
+
+            // 3. Starts-with SKU match
+            let a_starts_sku = a_sku.starts_with(&clean_pattern);
+            let b_starts_sku = b_sku.starts_with(&clean_pattern);
+            if a_starts_sku != b_starts_sku {
+                return b_starts_sku.cmp(&a_starts_sku);
+            }
+
+            // 4. Starts-with Name match
+            let a_starts_name = a_name.starts_with(&clean_pattern);
+            let b_starts_name = b_name.starts_with(&clean_pattern);
+            if a_starts_name != b_starts_name {
+                return b_starts_name.cmp(&a_starts_name);
+            }
+
+            // 5. Shortest name first (closer match)
+            let len_cmp = a.name.len().cmp(&b.name.len());
+            if len_cmp != std::cmp::Ordering::Equal {
+                return len_cmp;
+            }
+
+            // 6. Alphabetical
+            a.name.cmp(&b.name)
+        });
+    }
+
     Ok(items)
 }
 

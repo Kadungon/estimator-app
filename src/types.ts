@@ -105,6 +105,7 @@ export interface Settings {
   theme: string;
   confirm_save: string;
   estimates_dir: string;
+  show_balance_on_print: string;
 }
 
 // Cart types (frontend-only)

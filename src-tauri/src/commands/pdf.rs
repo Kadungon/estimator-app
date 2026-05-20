@@ -147,22 +147,37 @@ pub fn generate_pdf(estimate_id: i64, save_path: String, page_size: String) -> R
 
     // ── TABLE ROWS ────────────────────────────────────────────────────────────
     for (i, item) in estimate.items.iter().enumerate() {
-        if cursor_y < 25.0 { break; }
+        let name_limit = if page_w < 160.0 { 26 } else { 48 };
+        let name_lines = wrap_text(&item.name, name_limit);
+        let row_height = ((name_lines.len() - 1) as f32 * 3.5) + 5.0;
+
+        if cursor_y - row_height < 25.0 { break; }
 
         // Alternating row background
         if i % 2 == 1 {
-            fill_rect(&current_layer, 12.0, cursor_y - 2.0, page_w - 24.0, 6.0, 0.97_f32, 0.97_f32, 0.97_f32);
+            fill_rect(
+                &current_layer,
+                12.0,
+                cursor_y - ((name_lines.len() - 1) as f32 * 3.5) - 1.5,
+                page_w - 24.0,
+                row_height,
+                0.97_f32, 0.97_f32, 0.97_f32
+            );
         }
 
         write_text(&current_layer, &format!("{}", i + 1), 14.0, cursor_y, 8.5, false);
-        let name_limit = if page_w < 160.0 { 35 } else { 52 };
-        let name = if item.name.len() > name_limit { format!("{}...", &item.name[..name_limit-1]) } else { item.name.clone() };
-        write_text(&current_layer, &name, 22.0, cursor_y, 8.5, false);
+        
+        // Draw each line of the wrapped name
+        for (line_idx, line) in name_lines.iter().enumerate() {
+            let line_y = cursor_y - (line_idx as f32 * 3.5);
+            write_text(&current_layer, line, 22.0, line_y, 7.5, false); // Font size decreased to 7.5
+        }
+
         write_text(&current_layer, &format!("Rs. {:.2}", item.unit_price), page_w - 90.0, cursor_y, 8.5, false);
         write_text(&current_layer, &format!("{:.0}", item.quantity), page_w - 55.0, cursor_y, 8.5, false);
         write_text(&current_layer, &format!("Rs. {:.2}", item.line_total), page_w - 35.0, cursor_y, 8.5, false);
 
-        cursor_y -= 6.0;
+        cursor_y -= ((name_lines.len() - 1) as f32 * 3.5) + 6.0;
     }
 
 
@@ -207,9 +222,16 @@ pub fn generate_pdf(estimate_id: i64, save_path: String, page_size: String) -> R
     write_text(&current_layer, &format!("Rs. {:.2}", estimate.amount_paid), value_x, current_y, 9.0, false);
 
     let balance = estimate.total - estimate.amount_paid;
-    current_y -= 6.0;
-    write_text(&current_layer, "BALANCE:", label_x, current_y, 9.0, true);
-    write_text(&current_layer, &format!("Rs. {:.2}", balance), value_x, current_y, 9.0, true);
+    let show_balance = settings
+        .get("show_balance_on_print")
+        .map(|s| s.as_str() == "true")
+        .unwrap_or(false);
+
+    if show_balance {
+        current_y -= 6.0;
+        write_text(&current_layer, "BALANCE:", label_x, current_y, 9.0, true);
+        write_text(&current_layer, &format!("Rs. {:.2}", balance), value_x, current_y, 9.0, true);
+    }
 
     // Grand total row (Bottom blue bar)
     let grand_y = totals_box_y + 8.0;
@@ -241,4 +263,28 @@ pub fn generate_pdf(estimate_id: i64, save_path: String, page_size: String) -> R
 
 fn load_estimate(id: i64) -> Result<Estimate, String> {
     crate::commands::estimates::get_estimate(id)
+}
+
+fn wrap_text(text: &str, max_chars: usize) -> Vec<String> {
+    let mut lines = Vec::new();
+    let mut current_line = String::new();
+    
+    for word in text.split_whitespace() {
+        if current_line.is_empty() {
+            current_line.push_str(word);
+        } else if current_line.len() + 1 + word.len() <= max_chars {
+            current_line.push(' ');
+            current_line.push_str(word);
+        } else {
+            lines.push(current_line);
+            current_line = word.to_string();
+        }
+    }
+    if !current_line.is_empty() {
+        lines.push(current_line);
+    }
+    if lines.is_empty() {
+        lines.push(String::new());
+    }
+    lines
 }
