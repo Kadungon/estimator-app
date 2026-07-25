@@ -337,7 +337,7 @@ export default function BillingPage() {
           {/* Left: cart */}
           <div className="billing-left">
             {/* Print Header (Visible only in print) */}
-            <div className="print-only" style={{ padding: "16px 20px", borderBottom: "2px solid #000", marginBottom: "16px" }}>
+            <div className="print-only" style={{ padding: "16px 0", borderBottom: "2px solid #000", marginBottom: "16px" }}>
               <h2 style={{ margin: 0, fontSize: 20, textAlign: "center", textTransform: "uppercase" }}>Estimate</h2>
               <div style={{ display: "flex", justifyContent: "space-between", marginTop: 16 }}>
                 <div>
@@ -418,7 +418,7 @@ export default function BillingPage() {
             </div>
 
             {/* Printable Totals (Visible only in print) */}
-            <div className="print-only" style={{ marginTop: 10, padding: "0 12px" }}>
+            <div className="print-only" style={{ marginTop: 10, padding: "0" }}>
               <div style={{ display: "flex", justifyContent: "flex-end" }}>
                 <div style={{ width: 220, borderTop: "1px solid #000", paddingTop: 6 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>

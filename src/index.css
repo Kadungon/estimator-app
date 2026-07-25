@@ -804,12 +804,12 @@ kbd {
   /* Explicit column widths for paper printing */
   .data-table th:nth-child(1),
   .data-table td:nth-child(1) {
-    width: 5% !important;
+    width: 4% !important;
     text-align: left !important;
   }
   .data-table th:nth-child(2),
   .data-table td:nth-child(2) {
-    width: 60% !important;
+    width: 64% !important;
     text-align: left !important;
   }
   .data-table th:nth-child(3),
@@ -823,13 +823,17 @@ kbd {
   }
   .data-table th:nth-child(5),
   .data-table td:nth-child(5) {
-    width: 10% !important;
+    width: 7% !important;
     text-align: right !important;
   }
   .data-table th:nth-child(6),
   .data-table td:nth-child(6) {
     width: 10% !important;
     text-align: right !important;
+  }
+  .data-table th:nth-child(7),
+  .data-table td:nth-child(7) {
+    display: none !important;
   }
 
   .data-table td div {

@@ -145,7 +145,7 @@ export default function CartTable({
           <th style={{ width: 120, textAlign: "right" }}>Unit Price (Rate)</th>
           <th style={{ width: 100, textAlign: "right" }}>Qty</th>
           <th style={{ width: 100, textAlign: "right" }}>Total</th>
-          <th style={{ width: 36 }}></th>
+          <th style={{ width: 36 }} className="no-print"></th>
         </tr>
       </thead>
       <tbody>
@@ -206,7 +206,7 @@ export default function CartTable({
                 Rs.{lineTotal.toFixed(2)}
               </td>
 
-              <td>
+              <td className="no-print">
                 <button
                   className="btn btn-icon btn-danger btn-sm"
                   style={{ height: 26, width: 26 }}
