@@ -825,6 +825,7 @@ kbd {
   .data-table td:nth-child(5) {
     width: 7% !important;
     text-align: right !important;
+    padding-right: 12px !important;
   }
   .data-table th:nth-child(6),
   .data-table td:nth-child(6) {

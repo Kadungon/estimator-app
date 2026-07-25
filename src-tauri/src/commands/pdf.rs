@@ -155,7 +155,7 @@ pub fn generate_pdf(estimate_id: i64, save_path: String, page_size: String) -> R
         write_text(layer, "#", 14.0, y, 8.0, true);
         write_text(layer, "DESCRIPTION", 22.0, y, 8.0, true);
         write_text(layer, "UNIT PRICE", page_w - 72.0, y, 8.0, true);
-        write_text(layer, "QTY", page_w - 44.0, y, 8.0, true);
+        write_text(layer, "QTY", page_w - 48.0, y, 8.0, true);
         write_text(layer, "TOTAL", page_w - 32.0, y, 8.0, true);
     };
 
@@ -222,7 +222,7 @@ pub fn generate_pdf(estimate_id: i64, save_path: String, page_size: String) -> R
         } else {
             format!("{}", item.quantity)
         };
-        write_text(&current_layer, &qty_str, page_w - 44.0, cursor_y, 8.5, false);
+        write_text(&current_layer, &qty_str, page_w - 48.0, cursor_y, 8.5, false);
         write_text(&current_layer, &format!("Rs. {:.2}", item.line_total), page_w - 32.0, cursor_y, 8.5, false);
 
         cursor_y -= ((name_lines.len() - 1) as f32 * 3.5) + 6.0;
