@@ -210,6 +210,32 @@ export default function BillingPage() {
     }
   };
 
+  const seedFakeData = () => {
+    cart.clearCart();
+    const longName = "ARASAN 110MM 4KGF PVC PIPES WITH EXTRA LONG COUPLINGS AND SLEEVES FOR HEAVY DUTY DRAINAGE (4 INCH)";
+    const midName = "ARASAN 75MM 4KGF PVC PIPES (2 1/2\")";
+    for (let i = 1; i <= 30; i++) {
+      let name = `Test Item #${i}`;
+      if (i === 5 || i === 15 || i === 25) {
+        name = `${longName} - Batch ${Math.ceil(i/10)}`;
+      } else if (i % 3 === 0) {
+        name = `${midName} - Item ${i}`;
+      }
+      cart.addItem({
+        item_id: null,
+        name: name,
+        unit: i % 2 === 0 ? "Pcs" : "Kgs",
+        price_label: "Custom",
+        unit_price: 10 + i * 5,
+        quantity: i % 4 === 0 ? 2.5 : i % 3 === 0 ? 5 : 1,
+        persisted: false,
+      });
+    }
+    cart.setCustomer("Rani Test Customer");
+    cart.setNotes("This is a test invoice generated with 30 items (some having very long descriptions) to verify multi-page PDF export and browser print page breaking.");
+    toast.success("Loaded 30 test items into Cart!");
+  };
+
   const handleSave = useCallback(() => {
     if (cart.items.length === 0) { toast.error("Cart is empty"); return; }
     if (confirmSetting) { setShowSaveConfirm(true); } else { doSave(); }
@@ -317,6 +343,9 @@ export default function BillingPage() {
           <span className="page-title">{cart.estimateId ? `Edit ${cart.estNumber || 'Estimate'}` : "New Estimate"}</span>
           <div style={{ flex: 1 }} />
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <button className="btn btn-ghost btn-sm" onClick={seedFakeData} title="Seed 30 test items and info">
+              Seed Test Data
+            </button>
             <button id="clear-cart-btn" className="btn btn-ghost btn-sm" onClick={() => setShowClearConfirm(true)} title="Clear cart">
               <Trash2 size={14} /> Clear
             </button>

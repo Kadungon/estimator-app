@@ -57,8 +57,20 @@ pub fn generate_pdf(estimate_id: i64, save_path: String, page_size: String) -> R
     // ── Helper: write text right-aligned ─────────────────────────────────────
     let write_text_right = |layer: &PdfLayerReference, text: &str, x_right: f32, y: f32, size: f32, bold: bool| {
         let font = if bold { &font_bold } else { &font_reg };
-        let factor = if bold { 0.55_f32 } else { 0.45_f32 };
-        let est_width_pt = text.chars().count() as f32 * size * factor;
+        let mut total_factor: f32 = text.chars().map(|c| {
+            match c {
+                'A'..='Z' => 0.68_f32,
+                'a'..='z' => 0.50_f32,
+                '0'..='9' => 0.56_f32,
+                ' ' | ':' | '.' | ',' | ';' | '!' => 0.28_f32,
+                '-' | '/' | '(' | ')' | '[' | ']' => 0.33_f32,
+                _ => 0.50_f32,
+            }
+        }).sum();
+        if bold {
+            total_factor *= 1.08_f32;
+        }
+        let est_width_pt = total_factor * size;
         let est_width_mm = est_width_pt * 0.352778_f32;
         let x_start = x_right - est_width_mm;
         layer.use_text(text, size, Mm(x_start), Mm(y), font);
@@ -165,9 +177,9 @@ pub fn generate_pdf(estimate_id: i64, save_path: String, page_size: String) -> R
 
     // ── TABLE ROWS ────────────────────────────────────────────────────────────
     for (i, item) in estimate.items.iter().enumerate() {
-        let name_limit = if page_w < 160.0 { 40 } else { 80 };
+        let name_limit = if page_w < 160.0 { 28 } else { 62 };
         let name_lines = wrap_text(&item.name, name_limit);
-        let row_height = ((name_lines.len() - 1) as f32 * 3.5) + 5.0;
+        let row_height = ((name_lines.len() - 1) as f32 * 3.0) + 4.2;
 
         // Check page overflow (need at least 20.0 mm for row + bottom border + footer space)
         if cursor_y - row_height < 20.0 {
@@ -201,7 +213,7 @@ pub fn generate_pdf(estimate_id: i64, save_path: String, page_size: String) -> R
             fill_rect(
                 &current_layer,
                 12.0,
-                cursor_y - ((name_lines.len() - 1) as f32 * 3.5) - 1.5,
+                cursor_y - ((name_lines.len() - 1) as f32 * 3.0) - 1.1,
                 page_w - 24.0,
                 row_height,
                 0.97_f32, 0.97_f32, 0.97_f32
@@ -212,7 +224,7 @@ pub fn generate_pdf(estimate_id: i64, save_path: String, page_size: String) -> R
         
         // Draw each line of the wrapped name
         for (line_idx, line) in name_lines.iter().enumerate() {
-            let line_y = cursor_y - (line_idx as f32 * 3.5);
+            let line_y = cursor_y - (line_idx as f32 * 3.0);
             write_text(&current_layer, line, 22.0, line_y, 7.5, false);
         }
 
@@ -225,18 +237,53 @@ pub fn generate_pdf(estimate_id: i64, save_path: String, page_size: String) -> R
         write_text(&current_layer, &qty_str, page_w - 48.0, cursor_y, 8.5, false);
         write_text(&current_layer, &format!("Rs. {:.2}", item.line_total), page_w - 32.0, cursor_y, 8.5, false);
 
-        cursor_y -= ((name_lines.len() - 1) as f32 * 3.5) + 6.0;
+        cursor_y -= ((name_lines.len() - 1) as f32 * 3.0) + 4.8;
     }
 
     // Bottom table border
     stroke_line(&current_layer, 12.0, cursor_y + 2.0, page_w - 12.0, cursor_y + 2.0, 0.7, 0.7, 0.7);
     cursor_y -= 8.0;
 
-    // Check if notes + totals box fits on the current page.
-    // Totals box height is 45.0 mm. We need cursor_y - notes_height - 48.0 >= 12.0 mm (footer space).
-    // Therefore, cursor_y - notes_height < 60.0 means it does NOT fit.
-    let notes_height = if estimate.notes.as_ref().map(|n| !n.is_empty()).unwrap_or(false) { 10.0 } else { 0.0 };
-    if cursor_y - notes_height < 60.0 {
+    // ── NOTES & TOTALS DYNAMIC HEIGHT CALCULATION ────────────────────────────
+    let show_balance = settings
+        .get("show_balance_on_print")
+        .map(|s| s.as_str() == "true")
+        .unwrap_or(false);
+    let balance = estimate.total - estimate.amount_paid;
+    
+    let has_discount = estimate.discount > 0.0;
+    let has_balance = show_balance;
+    
+    let mut totals_rows = Vec::new();
+    totals_rows.push(("SUBTOTAL:", format!("Rs. {:.2}", estimate.subtotal), false));
+    if has_discount {
+        totals_rows.push(("DISCOUNT:", format!("- Rs. {:.2}", estimate.discount), false));
+    }
+    totals_rows.push(("TOTAL AMT:", format!("Rs. {:.2}", estimate.total), true));
+    totals_rows.push(("PAID AMT:", format!("Rs. {:.2}", estimate.amount_paid), false));
+    if has_balance {
+        totals_rows.push(("BALANCE:", format!("Rs. {:.2}", balance), true));
+    }
+    
+    let top_rows_count = totals_rows.len();
+    let row_spacing = 5.5_f32;
+    let grand_total_height = 8.5_f32;
+    let box_h = (top_rows_count as f32 * row_spacing) + grand_total_height + 6.0;
+
+    let notes_height = if let Some(ref notes) = estimate.notes {
+        if !notes.is_empty() {
+            let notes_limit = if page_w < 160.0 { 70 } else { 110 };
+            let notes_lines = wrap_text(notes, notes_limit);
+            (notes_lines.len() as f32 * 4.0) + 6.0
+        } else {
+            0.0
+        }
+    } else {
+        0.0
+    };
+
+    // Check if notes + totals box fits on the current page (need 15.0 mm margin at bottom)
+    if cursor_y - notes_height - box_h < 15.0 {
         // Draw footer on current page
         stroke_line(&current_layer, 12.0, 10.0, page_w - 12.0, 10.0, 0.7, 0.7, 0.7);
         current_layer.set_fill_color(Color::Rgb(Rgb::new(0.3_f32, 0.3_f32, 0.3_f32, None)));
@@ -256,61 +303,45 @@ pub fn generate_pdf(estimate_id: i64, save_path: String, page_size: String) -> R
         cursor_y = page_h - 22.0;
     }
 
-    // ── NOTES ────────────────────────────────────────────────────────────────
+    // ── DRAW NOTES ────────────────────────────────────────────────────────────
     if let Some(ref notes) = estimate.notes {
         if !notes.is_empty() {
             write_text(&current_layer, "Notes:", 12.0, cursor_y, 8.5, true);
-            cursor_y -= 5.0;
-            write_text(&current_layer, notes, 12.0, cursor_y, 9.0, false);
-            cursor_y -= 5.0;
+            cursor_y -= 4.0;
+            
+            let notes_limit = if page_w < 160.0 { 70 } else { 110 };
+            let notes_lines = wrap_text(notes, notes_limit);
+            for line in notes_lines {
+                write_text(&current_layer, &line, 12.0, cursor_y, 8.5, false);
+                cursor_y -= 4.0;
+            }
+            cursor_y -= 2.0;
         }
     }
 
-    // ── TOTALS BOX ────────────────────────────────────────────────────────────
-    let totals_w = 80.0;
+    // ── DRAW TOTALS BOX ───────────────────────────────────────────────────────
+    let totals_w = if page_w < 160.0 { 65.0 } else { 75.0 };
     let totals_x = page_w - 12.0 - totals_w;
-    let totals_box_y = cursor_y - 48.0;
-    fill_rect(&current_layer, totals_x, totals_box_y, totals_w, 45.0, 0.96_f32, 0.96_f32, 0.96_f32);
+    let totals_box_y = cursor_y - box_h - 2.0;
+    
+    fill_rect(&current_layer, totals_x, totals_box_y, totals_w, box_h, 0.96_f32, 0.96_f32, 0.96_f32);
 
     let label_x = totals_x + 4.0;
-    let value_right_x = totals_x + totals_w - 4.0; // Right margin inside the box
+    let value_right_x = totals_x + totals_w - 4.0;
 
-    let mut current_y = totals_box_y + 37.0;
-    write_text(&current_layer, "SUBTOTAL:", label_x, current_y, 9.0, false);
-    write_text_right(&current_layer, &format!("Rs. {:.2}", estimate.subtotal), value_right_x, current_y, 9.0, false);
-
-    if estimate.discount > 0.0 {
-        current_y -= 6.0;
-        write_text(&current_layer, "DISCOUNT:", label_x, current_y, 9.0, false);
-        write_text_right(&current_layer, &format!("- Rs. {:.2}", estimate.discount), value_right_x, current_y, 9.0, false);
-    }
-
-    current_y -= 6.0;
-    write_text(&current_layer, "TOTAL AMT:", label_x, current_y, 9.0, true);
-    write_text_right(&current_layer, &format!("Rs. {:.2}", estimate.total), value_right_x, current_y, 9.0, true);
-
-    current_y -= 6.0;
-    write_text(&current_layer, "PAID AMT:", label_x, current_y, 9.0, false);
-    write_text_right(&current_layer, &format!("Rs. {:.2}", estimate.amount_paid), value_right_x, current_y, 9.0, false);
-
-    let balance = estimate.total - estimate.amount_paid;
-    let show_balance = settings
-        .get("show_balance_on_print")
-        .map(|s| s.as_str() == "true")
-        .unwrap_or(false);
-
-    if show_balance {
-        current_y -= 6.0;
-        write_text(&current_layer, "BALANCE:", label_x, current_y, 9.0, true);
-        write_text_right(&current_layer, &format!("Rs. {:.2}", balance), value_right_x, current_y, 9.0, true);
+    let mut current_y = totals_box_y + box_h - 6.0;
+    for (label, value, bold) in &totals_rows {
+        write_text(&current_layer, label, label_x, current_y, 8.5, *bold);
+        write_text_right(&current_layer, value, value_right_x, current_y, 8.5, *bold);
+        current_y -= row_spacing;
     }
 
     // Grand total row (Bottom grey bar with black text)
-    let grand_y = totals_box_y + 8.0;
-    fill_rect(&current_layer, totals_x, grand_y - 2.0, totals_w, 9.0, 0.88_f32, 0.88_f32, 0.88_f32);
+    let grand_y = totals_box_y + 2.0;
+    fill_rect(&current_layer, totals_x, grand_y, totals_w, grand_total_height, 0.88_f32, 0.88_f32, 0.88_f32);
     current_layer.set_fill_color(Color::Rgb(Rgb::new(0.0, 0.0, 0.0, None)));
-    write_text(&current_layer, "GRAND TOTAL:", label_x, grand_y, 10.0, true);
-    write_text_right(&current_layer, &format!("Rs. {:.2}", estimate.total), value_right_x, grand_y, 10.0, true);
+    write_text(&current_layer, "GRAND TOTAL:", label_x, grand_y + 1.8, 9.5, true);
+    write_text_right(&current_layer, &format!("Rs. {:.2}", estimate.total), value_right_x, grand_y + 1.8, 9.5, true);
 
     // ── FOOTER (NO BLUE BACKGROUND) ──────────────────────────────────────────
     stroke_line(&current_layer, 12.0, 10.0, page_w - 12.0, 10.0, 0.7, 0.7, 0.7);
