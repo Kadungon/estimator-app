@@ -174,22 +174,32 @@ export default function CartTable({
                 </button>
               </td>
               <td>
-                <NumericInput
-                  value={item.unit_price}
-                  step={0.01}
-                  min={0}
-                  onChange={(val) => updatePrice(item.tempId, val)}
-                  style={{ width: "120px", height: "30px", fontSize: "12px" }}
-                />
+                <span className="print-only" style={{ fontSize: "12px", fontWeight: 600 }}>
+                  Rs.{item.unit_price.toFixed(2)}
+                </span>
+                <div className="no-print">
+                  <NumericInput
+                    value={item.unit_price}
+                    step={0.01}
+                    min={0}
+                    onChange={(val) => updatePrice(item.tempId, val)}
+                    style={{ width: "120px", height: "30px", fontSize: "12px" }}
+                  />
+                </div>
               </td>
               <td>
-                <NumericInput
-                  value={item.quantity}
-                  step={1}
-                  min={1}
-                  onChange={(val) => updateQty(item.tempId, val)}
-                  style={{ width: "100px", height: "30px", fontSize: "12px" }}
-                />
+                <span className="print-only" style={{ fontSize: "12px", fontWeight: 600 }}>
+                  {item.quantity}
+                </span>
+                <div className="no-print">
+                  <NumericInput
+                    value={item.quantity}
+                    step={0.01}
+                    min={0.001}
+                    onChange={(val) => updateQty(item.tempId, val)}
+                    style={{ width: "100px", height: "30px", fontSize: "12px" }}
+                  />
+                </div>
               </td>
 
               <td style={{ textAlign: "right", fontWeight: 600, fontSize: 12.5 }}>
@@ -278,8 +288,8 @@ export default function CartTable({
                 setEntryQty(val === "" ? 1 : Number(val));
               }}
               onKeyDown={handleQtyKeyDown}
-              min={1}
-              step={1}
+              min={0.001}
+              step="any"
             />
           </td>
           <td style={{ textAlign: "right", fontWeight: 600, fontSize: 12.5 }}>

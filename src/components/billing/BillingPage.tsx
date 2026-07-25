@@ -341,11 +341,16 @@ export default function BillingPage() {
               <h2 style={{ margin: 0, fontSize: 20, textAlign: "center", textTransform: "uppercase" }}>Estimate</h2>
               <div style={{ display: "flex", justifyContent: "space-between", marginTop: 16 }}>
                 <div>
-                  <div style={{ fontSize: 13 }}><strong>Date:</strong> {new Date().toLocaleDateString()}</div>
-                  {cart.customer && <div style={{ fontSize: 13, marginTop: 4 }}><strong>Customer:</strong> {cart.customer}</div>}
+                  {cart.customer && (
+                    <div style={{ fontSize: 13 }}>
+                      <strong>BILLED TO:</strong>
+                      <div style={{ fontSize: 15, fontWeight: 600, marginTop: 4 }}>{cart.customer}</div>
+                    </div>
+                  )}
                 </div>
                 <div style={{ textAlign: "right", fontSize: 13 }}>
-                  <div><strong>Est No:</strong> {cart.estNumber || "DRAFT"}</div>
+                  <div><strong>No:</strong> {cart.estNumber ? cart.estNumber.replace(/^(EST-|est-)/, "") : "DRAFT"}</div>
+                  <div style={{ fontSize: 13, marginTop: 4 }}><strong>Date:</strong> {new Date().toLocaleDateString()}</div>
                 </div>
               </div>
             </div>

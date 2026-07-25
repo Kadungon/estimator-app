@@ -80,6 +80,9 @@ export default function NumericInput({ value, onChange, min = 0, max, step = 1, 
         onChange={handleInputChange}
         onBlur={handleBlur}
         onFocus={(e) => e.target.select()}
+        step={step}
+        min={min}
+        max={max}
       />
     </div>
   );

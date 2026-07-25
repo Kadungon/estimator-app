@@ -86,45 +86,47 @@ pub fn generate_pdf(estimate_id: i64, save_path: String, page_size: String) -> R
         layer.restore_graphics_state();
     };
 
-    // ── WATERMARK ─────────────────────────────────────────────────────────────
-    current_layer.save_graphics_state();
-    current_layer.set_fill_color(Color::Rgb(Rgb::new(0.93_f32, 0.93_f32, 0.93_f32, None)));
-    write_text(&current_layer, "ESTIMATE COPY", 38.0, 135.0, 60.0, true);
-    current_layer.restore_graphics_state();
+    // ── HEADER BAR (NO BLUE BACKGROUND) ──────────────────────────────────────
+    current_layer.set_fill_color(Color::Rgb(Rgb::new(0.0, 0.0, 0.0, None)));
+    write_text(&current_layer, &shop_name.to_uppercase(), 12.0, page_h - 12.0, 16.0, true);
+    write_text(&current_layer, "QUOTATION / ESTIMATE", page_w - 70.0, page_h - 12.0, 11.0, true);
 
-    // ── HEADER BAR ───────────────────────────────────────────────────────────
-    fill_rect(&current_layer, 0.0, page_h - 20.0, page_w, 20.0, 0.13_f32, 0.18_f32, 0.35_f32);
+    // Thin black separator line below header
+    stroke_line(&current_layer, 12.0, page_h - 18.0, page_w - 12.0, page_h - 18.0, 0.0, 0.0, 0.0);
 
-    current_layer.set_fill_color(Color::Rgb(Rgb::new(1.0, 1.0, 1.0, None)));
-    write_text(&current_layer, &shop_name.to_uppercase(), 12.0, page_h - 10.0, 16.0, true);
-    write_text(&current_layer, "QUOTATION / ESTIMATE", page_w - 70.0, page_h - 10.0, 11.0, true);
-
-    // Thin accent strip below header
-    fill_rect(&current_layer, 0.0, page_h - 22.0, page_w, 2.0, 0.95_f32, 0.70_f32, 0.20_f32);
-
-    // ── SHOP INFO & ESTIMATE META ─────────────────────────────────────────────
+    // ── SHOP INFO, ESTIMATE META & BILLED TO (BILLED TO AT TOP) ──────────────
     current_layer.set_fill_color(Color::Rgb(Rgb::new(0.0, 0.0, 0.0, None)));
     let info_y = page_h - 30.0;
-    if !shop_address.is_empty() {
-        write_text(&current_layer, &shop_address, 12.0, info_y, 8.0, false);
-    }
-    if !shop_phone.is_empty() {
-        write_text(&current_layer, &format!("Phone: {}", shop_phone), 12.0, info_y - 4.5, 8.0, false);
-    }
-    write_text(&current_layer, &format!("EST No: {}", estimate.est_number), page_w - 70.0, info_y, 9.0, true);
-    write_text(&current_layer, &format!("Date: {}", Local::now().format("%d-%m-%Y")), page_w - 70.0, info_y - 4.5, 8.0, false);
 
-    // ── BILLED TO ─────────────────────────────────────────────────────────────
-    let mut cursor_y = info_y - 16.0;
-
+    // Left: Billed To
+    let mut billed_y = info_y;
     if let Some(ref cust) = estimate.customer {
         if !cust.is_empty() {
-            write_text(&current_layer, "BILLED TO:", 12.0, cursor_y, 7.5, true);
-            cursor_y -= 5.0;
-            write_text(&current_layer, cust, 12.0, cursor_y, 11.0, false);
-            cursor_y -= 7.0;
+            write_text(&current_layer, "BILLED TO:", 12.0, billed_y, 7.5, true);
+            billed_y -= 5.0;
+            write_text(&current_layer, cust, 12.0, billed_y, 11.0, false);
         }
     }
+
+    // Right: Est No & Date
+    let mut right_y = info_y;
+    let clean_est_num = estimate.est_number.trim_start_matches("EST-").trim_start_matches("est-");
+    write_text(&current_layer, &format!("No: {}", clean_est_num), page_w - 70.0, right_y, 9.0, true);
+    right_y -= 4.5;
+    write_text(&current_layer, &format!("Date: {}", Local::now().format("%d-%m-%Y")), page_w - 70.0, right_y, 8.0, false);
+
+    // Right (below Est No & Date): Shop Info
+    if !shop_phone.is_empty() {
+        right_y -= 4.5;
+        write_text(&current_layer, &format!("Phone: {}", shop_phone), page_w - 70.0, right_y, 8.0, false);
+    }
+    if !shop_address.is_empty() {
+        right_y -= 4.5;
+        write_text(&current_layer, &shop_address, page_w - 70.0, right_y, 8.0, false);
+    }
+
+    // Warning banner/Table header start position
+    let mut cursor_y = info_y - 22.0;
 
     // ── WARNING BANNER ────────────────────────────────────────────────────────
     cursor_y -= 1.0;
@@ -134,15 +136,16 @@ pub fn generate_pdf(estimate_id: i64, save_path: String, page_size: String) -> R
     current_layer.set_fill_color(Color::Rgb(Rgb::new(0.0, 0.0, 0.0, None)));
     cursor_y -= 10.0;
 
-    // ── TABLE HEADER ─────────────────────────────────────────────────────────
-    fill_rect(&current_layer, 12.0, cursor_y - 1.5, page_w - 24.0, 6.0, 0.22_f32, 0.28_f32, 0.50_f32);
-    current_layer.set_fill_color(Color::Rgb(Rgb::new(1.0, 1.0, 1.0, None)));
+    // ── TABLE HEADER (NO BLUE BACKGROUND) ────────────────────────────────────
+    fill_rect(&current_layer, 12.0, cursor_y - 1.5, page_w - 24.0, 6.0, 0.94_f32, 0.94_f32, 0.94_f32);
+    stroke_line(&current_layer, 12.0, cursor_y + 4.5, page_w - 12.0, cursor_y + 4.5, 0.0, 0.0, 0.0);
+    stroke_line(&current_layer, 12.0, cursor_y - 1.5, page_w - 12.0, cursor_y - 1.5, 0.0, 0.0, 0.0);
+    current_layer.set_fill_color(Color::Rgb(Rgb::new(0.0, 0.0, 0.0, None)));
     write_text(&current_layer, "#", 14.0, cursor_y, 8.0, true);
     write_text(&current_layer, "DESCRIPTION", 22.0, cursor_y, 8.0, true);
     write_text(&current_layer, "UNIT PRICE", page_w - 90.0, cursor_y, 8.0, true);
     write_text(&current_layer, "QTY", page_w - 55.0, cursor_y, 8.0, true);
     write_text(&current_layer, "TOTAL", page_w - 35.0, cursor_y, 8.0, true);
-    current_layer.set_fill_color(Color::Rgb(Rgb::new(0.0, 0.0, 0.0, None)));
     cursor_y -= 7.5;
 
     // ── TABLE ROWS ────────────────────────────────────────────────────────────
@@ -174,7 +177,12 @@ pub fn generate_pdf(estimate_id: i64, save_path: String, page_size: String) -> R
         }
 
         write_text(&current_layer, &format!("Rs. {:.2}", item.unit_price), page_w - 90.0, cursor_y, 8.5, false);
-        write_text(&current_layer, &format!("{:.0}", item.quantity), page_w - 55.0, cursor_y, 8.5, false);
+        let qty_str = if item.quantity.fract() == 0.0 {
+            format!("{:.0}", item.quantity)
+        } else {
+            format!("{}", item.quantity)
+        };
+        write_text(&current_layer, &qty_str, page_w - 55.0, cursor_y, 8.5, false);
         write_text(&current_layer, &format!("Rs. {:.2}", item.line_total), page_w - 35.0, cursor_y, 8.5, false);
 
         cursor_y -= ((name_lines.len() - 1) as f32 * 3.5) + 6.0;
@@ -198,7 +206,7 @@ pub fn generate_pdf(estimate_id: i64, save_path: String, page_size: String) -> R
     let totals_w = 80.0;
     let totals_x = page_w - 12.0 - totals_w;
     let totals_box_y = cursor_y - 48.0; // Increased height for more rows
-    fill_rect(&current_layer, totals_x, totals_box_y, totals_w, 45.0, 0.95_f32, 0.96_f32, 0.98_f32);
+    fill_rect(&current_layer, totals_x, totals_box_y, totals_w, 45.0, 0.96_f32, 0.96_f32, 0.96_f32);
 
     let label_x = totals_x + 4.0;
     let value_x = totals_x + totals_w - 32.0;
@@ -233,17 +241,16 @@ pub fn generate_pdf(estimate_id: i64, save_path: String, page_size: String) -> R
         write_text(&current_layer, &format!("Rs. {:.2}", balance), value_x, current_y, 9.0, true);
     }
 
-    // Grand total row (Bottom blue bar)
+    // Grand total row (Bottom grey bar with black text)
     let grand_y = totals_box_y + 8.0;
-    fill_rect(&current_layer, totals_x, grand_y - 2.0, totals_w, 9.0, 0.13_f32, 0.18_f32, 0.35_f32);
-    current_layer.set_fill_color(Color::Rgb(Rgb::new(1.0, 1.0, 1.0, None)));
+    fill_rect(&current_layer, totals_x, grand_y - 2.0, totals_w, 9.0, 0.88_f32, 0.88_f32, 0.88_f32);
+    current_layer.set_fill_color(Color::Rgb(Rgb::new(0.0, 0.0, 0.0, None)));
     write_text(&current_layer, "GRAND TOTAL:", label_x, grand_y, 10.0, true);
     write_text(&current_layer, &format!("Rs. {:.2}", estimate.total), value_x, grand_y, 10.0, true);
-    current_layer.set_fill_color(Color::Rgb(Rgb::new(0.0, 0.0, 0.0, None)));
 
-    // ── FOOTER ────────────────────────────────────────────────────────────────
-    fill_rect(&current_layer, 0.0, 0.0, page_w, 14.0, 0.13_f32, 0.18_f32, 0.35_f32);
-    current_layer.set_fill_color(Color::Rgb(Rgb::new(0.80_f32, 0.82_f32, 0.88_f32, None)));
+    // ── FOOTER (NO BLUE BACKGROUND) ──────────────────────────────────────────
+    stroke_line(&current_layer, 12.0, 10.0, page_w - 12.0, 10.0, 0.7, 0.7, 0.7);
+    current_layer.set_fill_color(Color::Rgb(Rgb::new(0.3_f32, 0.3_f32, 0.3_f32, None)));
     write_text(&current_layer, "ESTIMATE ONLY — NOT A TAX INVOICE  |  Prices subject to change  |  GST not included", 12.0, 5.0, 7.0, false);
     current_layer.set_fill_color(Color::Rgb(Rgb::new(0.0, 0.0, 0.0, None)));
 
